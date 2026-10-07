@@ -52,8 +52,8 @@ AcademicPeriod 1 ──────── * StudentEnrollment * ─────�
                                          │                         └── 1 accepted-under Enrollment
                                          └──────── original assignment route ─────┘
 
-LifecycleEvent * ── polymorphic reference to a period, catalog entry,
-                    enrollment, or teaching assignment
+LifecycleEvent * ── typed restrictive foreign key to exactly one period,
+                    catalog entry, enrollment, or teaching assignment
 ```
 
 ### Core records
@@ -64,12 +64,12 @@ LifecycleEvent * ── polymorphic reference to a period, catalog entry,
 | Instructional entry | `id`, classification after first reference | display name, active flag | Inactive entries and references remain available. |
 | Grade | `id` | display name, active flag | Referenced grades remain available. |
 | Section | `id`, `grade_id` after first reference | display name, active flag | Referenced sections remain attached to their grade. |
-| Student enrollment | `id`, student, period, grade, section, `effective_from` | lifecycle state, `effective_until` | Transfer or closure never rewrites scope or identity. |
-| Teaching assignment | `id`, period, teacher, instructional entry, grade, section, `effective_from` | lifecycle state, `effective_until` | Closure or replacement never rewrites scope or identity. |
+| Student enrollment | `id`, student, period, grade, section, declared `effective_from`, operational start key | lifecycle state, declared `effective_until`, operational end key set once | Transfer or closure never rewrites scope or identity. |
+| Teaching assignment | `id`, period, teacher, instructional entry, grade, section, declared `effective_from`; operational start key once activated | lifecycle state, operational start key set at activation, declared `effective_until`, operational end key set once | Closure or replacement never rewrites scope or identity. |
 | Activity reference | `id`, `teaching_assignment_id` | Deferred | Assignment identity cannot change. |
-| Submission reference | `id`, student, activity, original assignment, accepted-under enrollment, accepted timestamp | Deferred | Route and ownership references cannot change. |
+| Submission reference | `id`, student, activity, original assignment, accepted-under enrollment, accepted timestamp and operation key | Deferred | Route and ownership references cannot change. |
 
-Primary keys are planned as unsigned MySQL `BIGINT` values generated locally. They are stable identifiers, are never reused, and are not authorization evidence. Introducing globally coordinated identifiers for future synchronization is explicitly deferred with synchronization design.
+Primary keys are planned as unsigned MySQL `BIGINT` values generated locally. `BIGINT` is an implementation choice, not a product requirement. Stable identity and retention are normative; identifiers are never reused and are not authorization evidence. Introducing globally coordinated identifiers for future synchronization is explicitly deferred with synchronization design.
 
 ## Persistence Model
 
@@ -77,39 +77,46 @@ The table names below are planned names for later Laravel migrations, not existi
 
 | Table | Key columns and relationships | Database-enforced constraints |
 |---|---|---|
-| `academic_periods` | `id`, `name`, `start_on`, `end_on`, `state`, timestamps | Unique normalized name; `start_on <= end_on`; state check; generated unique active guard allows at most one `active` row. |
+| `academic_periods` | `id`, `name`, `name_key`, `start_on`, `end_on`, `state`, timestamps | Unique name key under the approved equality rule; `start_on <= end_on`; state check; generated unique active guard allows at most one `active` row. |
 | `instructional_entries` | `id`, `kind`, `name`, `name_key`, `is_active` | Kind is `subject` or `area`; generated active-name key plus unique index prevents duplicate active names within kind. |
 | `grades` | `id`, `name`, `name_key`, `is_active` | Generated active-name key plus unique index prevents duplicate active grade names. |
 | `sections` | `id`, `grade_id`, `name`, `name_key`, `is_active` | Foreign key to grade; generated active-name key plus unique index prevents duplicate active section names within a grade. |
-| `student_enrollments` | `id`, `student_id`, `academic_period_id`, `grade_id`, `section_id`, `state`, `effective_from`, nullable `effective_until` | Non-null foreign keys with restrictive deletes; state/date checks; `(section_id, grade_id)` references the indexed pair on `sections`. |
-| `teaching_assignments` | `id`, `academic_period_id`, `teacher_id`, `instructional_entry_id`, `grade_id`, `section_id`, `state`, `effective_from`, nullable `effective_until`, nullable `replaces_assignment_id` | Non-null restrictive foreign keys; state/date checks; unique successor link; `(section_id, grade_id)` references the indexed pair on `sections`; self-reference preserves replacement lineage. |
-| `academic_lifecycle_events` | `id`, entity type/id, event type, previous/new state, effective date, actor, correlation ID, recorded timestamp, metadata | Append-only through the application role; indexed by entity and sequence/time. Not used as the source of current authorization state. |
+| `student_enrollments` | `id`, `student_id`, `academic_period_id`, `grade_id`, `section_id`, `state`, declared `effective_from`/nullable `effective_until` dates, operational boundary keys | Non-null foreign keys with restrictive deletes; state/date/order checks; `(section_id, grade_id)` references the indexed pair on `sections`. |
+| `teaching_assignments` | `id`, `academic_period_id`, `teacher_id`, `instructional_entry_id`, `grade_id`, `section_id`, `state`, declared `effective_from`/nullable `effective_until` dates, operational boundary keys, nullable `replaces_assignment_id` | Non-null restrictive foreign keys; state/date/order checks; unique successor link; `(section_id, grade_id)` references the indexed pair on `sections`; self-reference preserves replacement lineage. |
+| `academic_lifecycle_events` | `id`, typed nullable target FKs, event type, previous/new state, declared effective date, operational boundary key, `actor_id`, correlation ID, recorded timestamp, metadata | Exactly one target FK populated, with a matching entity type; restrictive target and actor FKs; append-only application permissions; indexed by target and operation order. Not the source of current authorization state. |
 | `activity_references` | `id`, `teaching_assignment_id` | Restrictive foreign key; assignment link immutable. No activity lifecycle fields are designed here. |
-| `submission_references` | `id`, `student_id`, `activity_id`, `teaching_assignment_id`, `accepted_under_enrollment_id`, `accepted_at` | Restrictive foreign keys; assignment must equal the activity's assignment, enforced by service validation and transaction. No submission processing fields are designed here. |
+| `submission_references` | `id`, `student_id`, `activity_id`, `teaching_assignment_id`, `accepted_under_enrollment_id`, `accepted_at`, acceptance operation key | Restrictive foreign keys; assignment must equal the activity's assignment, enforced by service validation and transaction. No submission processing fields are designed here. |
+| `academic_write_guard` | Singleton `id`, next operation ordinal | Pre-created technical row; exclusive lock serializes foundation writes and minimum acceptance, including writes with no existing target row. Not a domain entity. |
 
 MySQL `CHECK` constraints will express row-local invariants where supported by the selected MySQL version. Foreign keys and unique indexes are the final guard for relationship and uniqueness invariants. Cross-row interval overlap and cross-table route equality remain application-service checks executed under locks because MySQL has no native exclusion constraint.
 
-Names use a server-generated `name_key` with a documented Unicode normalization, trim, and case-folding policy. Uniqueness indexes use that key rather than relying on browser normalization. React never calculates authoritative uniqueness keys.
+The tables, generated indexes, normalization, temporal encoding, guard, and ledger are implementation choices, not additional product requirements. The specs define uniqueness scopes but do not define whether case, whitespace, accents, or canonically equivalent Unicode spellings count as the same name. Do not silently choose trim, case folding, accent removal, or Unicode normalization. Until an equality rule is approved, only identical stored Unicode scalar sequences can safely be identified as definite duplicates; broader equivalence is an unresolved product decision. Final `name_key` generation and index collation must implement that rule exactly on the server (including catalog reactivation and rename); React is not authoritative. A binary comparison can represent exact equality but is not approval of the final name-equality rule.
 
 ### State and history representation
 
 Current state is stored on each aggregate for efficient authorization. A lifecycle transition updates only the controlled current-state fields and appends an `academic_lifecycle_events` row in the same transaction. Identity and scope foreign keys are not changed to simulate transfers, replacements, or reclassification.
 
-This is not event sourcing: current rows remain authoritative. The event ledger supplies transition history, actor, effective date, and correlation evidence. Referential integrity uses `RESTRICT`/`NO ACTION`, never cascading deletes, across retained academic history. Catalog display-name corrections retain stable IDs; the corresponding event captures the prior and new display value.
+This is not event sourcing: current rows remain authoritative. The event ledger supplies transition history, actor, declared date, operational order, and correlation evidence. Referential integrity uses `RESTRICT`/`NO ACTION`, never cascading deletes, across retained academic history. Catalog display-name corrections retain stable IDs; the corresponding event captures the prior and new display value.
+
+Use typed target foreign keys for periods, instructional entries, grades, sections, enrollments, and assignments, not an unenforced polymorphic type/ID pair. A row-local check permits exactly one target and verifies its discriminator. These restrictive FKs protect targets referenced only by the ledger as well as targets referenced by academic records. `actor_id` references a retained local identity: account deactivation or credential removal does not remove or re-identify the audit identity. Identity storage and its retention-compatible FK are future schema dependencies, not an existing user table or a new account-management capability.
+
+The runtime database role may `SELECT` and `INSERT` ledger rows, but not `UPDATE` or `DELETE`; transitions and event inserts commit or roll back together. Migration/maintenance privileges must be separate and must not be used by runtime commands to rewrite evidence. Constraints, permission tests, and transactional handlers together enforce integrity; an application convention alone is insufficient. Actor and target identity dependencies precede ledger migration.
 
 ## Effective-Date and Interval Strategy
 
 > **Technical representation of approved behavior, not a new product permission:** the following choices make the approved lifecycle, transfer, and replacement rules unambiguous in storage and comparisons.
 
-- Academic scope changes use school-local calendar-date granularity (`DATE`), not timestamps. The configured school time zone determines which calendar date applies when a command is accepted.
-- Enrollment and teaching-assignment intervals are half-open: `[effective_from, effective_until)`. `effective_from` is inclusive; nullable `effective_until` means no recorded end yet and is treated as positive infinity for overlap checks.
-- In an authorized transfer or replacement effective on date `D`, the prior interval ends at `D` and the successor begins at `D`. The records therefore do not overlap and there is no day-level gap.
-- API fields use `effectiveFrom` and `effectiveUntilExclusive` so the boundary is not mistaken for an inclusive final day.
-- Academic-period `start_on` and `end_on` remain inclusive calendar boundaries because the approved period specification names start and end dates. Assignment interval validation converts the period end to the exclusive comparison boundary `end_on + 1 day`.
-- An assignment interval must fall within its academic period as required by the teaching-assignment specification. No additional enrollment-within-period-date constraint is introduced because the enrollment specification does not state one.
-- Operational evidence uses UTC `TIMESTAMP(6)` fields such as `recorded_at` and `accepted_at`; these do not replace effective dates.
+- Preserve required declared effective start/end dates as school-local `DATE` values; an end date must not precede its start date and may equal it under both lifecycle specs. The configured school time zone determines the declared date of an immediate server-effective operation. A date is not enough to order enrollment, acceptance, transfer, and replacement occurring on that same day; `[D, D)` would incorrectly erase a real interval.
+- Separately store server transaction-effective boundary keys: a monotonically increasing operation ordinal allocated under the write guard, with a UTC microsecond timestamp as evidence. Ordinals, not wall-clock precision, determine order. They are technical linearization keys for successful operations, not client scheduling fields. Rollback rolls back the ordinal allocation and all associated writes.
+- Operational intervals are half-open `[start_key, end_key)`, with inclusive start and exclusive end. Null enrollment end means no recorded end, treated as infinity for comparisons. Activation establishes an assignment's operational start; planned rows have declared dates but no current operational authority. Closure/transfer/replacement records a boundary key as well as its required declared end date.
+- At transfer or replacement key `K`, end the prior interval at `K` and start the successor at `K` in one transaction. Creation followed by two same-day transfers has keys `K1 < K2 < K3`, producing nonempty `[K1,K2)` and `[K2,K3)` histories even when every declared date is `D`. No minimum one-day duration or next-day transition is imposed.
+- For immediate operations whose effective moment is the accepted transaction, this represents the specs' effective-moment boundary without adding an intra-day scheduling feature. Dates alone do not specify how arbitrary supplied dates map to operational boundaries. Future or retroactive transfers, replacements, and historical corrections are not designed or granted here; defer their semantics and any API supporting them to explicit product decisions. Do not mark a future transfer effective now, keep a transferred enrollment authoritative until a future date, or rewrite earlier submission authority.
+- `effectiveFrom` and `effectiveUntil` in historical views are declared calendar dates, not exclusive instants. Expose separate `operationalStartKey` and nullable `operationalEndKeyExclusive` when interval order is needed. `accepted_at` records evidence time; the submission also retains its acceptance operation key. No client-supplied clock establishes authority.
+- Period `start_on` and `end_on` are inclusive declared calendar boundaries. Teaching-assignment validation requires each supplied start/end date to lie within those boundaries, including an end equal to the period end; it does not compare a null end as infinity and reject every open assignment. For declared-date conflict planning only, an open assignment's comparison horizon is bounded by its period's inclusive end (`end_on + 1 day` as an exclusive calendar boundary). This is not an automatic closure or authorization-expiry rule.
+- The enrollment and period specs require one period identity, not enrollment-date containment within its period. Do not add that constraint. Whether enrollment dates must lie within period dates is a missing product rule. Neither record may span multiple period identities.
+- Period dates do not change lifecycle state automatically. Period closure changes only the period and its ledger; it does not cascade closure to enrollments/assignments. A closed period is historical and not current, so it cannot supply current-period authority. The specs do not explicitly settle every operation on a still-active child of a closed period; do not invent a blanket closed-period denial (especially for acceptance against existing activities), permission, or cascade. Defer that matrix before implementing affected commands.
 
-Two intervals overlap when `left.from < COALESCE(right.until, infinity)` and `right.from < COALESCE(left.until, infinity)`. The same predicate is used in validation and integration tests.
+For comparable operational keys, intervals overlap exactly when `left.start < right.end` and `right.start < left.end`, with an absent end treated as infinity. Compare relevant historical occupied intervals as well as current rows; current state alone does not reconstruct past conflicts. Declared-date bounds also require validation. Planned assignment conflicts must be checked, not excluded because they are not active: disjoint declared date ranges are non-overlapping, but dates alone cannot settle every shared-day planned boundary against an operational key. Mapping such planned boundaries or user-selected non-current dates is unresolved; do not guess midnight, silently allow a duplicate, or prohibit all same-day operations. These ambiguous cases need approved semantics before implementation. Exact temporal column types beyond declared `DATE` values remain implementation details.
 
 ## Architecture Decisions
 
@@ -137,13 +144,13 @@ Two intervals overlap when `left.from < COALESCE(right.until, infinity)` and `ri
 
 **Rationale**: Current rows make authorization queries direct, while the ledger preserves non-destructive history and audit context. Full event sourcing adds projection and recovery complexity not justified by the approved scope.
 
-### Decision: Represent effective scope with half-open date intervals
+### Decision: Separate declared dates from half-open operational intervals
 
-**Choice**: Use school-local `DATE` values and `[from, until)` interval semantics for enrollments and assignments.
+**Choice**: Retain school-local declared dates and store half-open server-ordered operational intervals separately.
 
-**Alternatives considered**: Inclusive end dates; timestamp-level intervals.
+**Alternatives considered**: Date-only half-open intervals; wall-clock timestamps as the sole ordering key.
 
-**Rationale**: Half-open dates allow a transfer or replacement to end and begin on the same date without overlap. Timestamp precision would imply unsupported intra-day product behavior, while inclusive dates force artificial next-day transitions.
+**Rationale**: Date-only intervals lose same-day history; timestamps can collide or regress. A transaction ordinal records actual effective order without introducing functional scheduling. Non-current-date mappings and ambiguous planned boundaries remain deferred product decisions.
 
 ### Decision: Enforce invariants in both MySQL and locked application transactions
 
@@ -153,13 +160,13 @@ Two intervals overlap when `left.from < COALESCE(right.until, infinity)` and `ri
 
 **Rationale**: Database constraints protect against accidental bypass, while explicit application transactions can produce domain errors and testable behavior for rules MySQL cannot express declaratively. Trigger-heavy logic would hide domain behavior outside the Laravel application boundary.
 
-### Decision: Serialize interval conflicts through stable parent rows
+### Decision: Serialize foundation writes through one stable guard and ordered rows
 
-**Choice**: Lock the student row before enrollment interval changes, the teacher row before same-teacher assignment checks, and the relevant period row during lifecycle operations. Then query conflicts and write within one transaction.
+**Choice**: Acquire the singleton academic write guard first for every competing foundation mutation and minimum submission acceptance, then acquire all required rows in the canonical order below. Re-read and validate before writing.
 
-**Alternatives considered**: Optimistic checks without locks; a separate advisory-lock service.
+**Alternatives considered**: Parent-only locks plus additional uniqueness-range guards; optimistic checks without locks; a separate advisory-lock service.
 
-**Rationale**: Parent-row locks make concurrent requests for the same conflict domain deterministic using local MySQL only. Optimistic checks can race, and an external lock service would violate local-dependency goals.
+**Rationale**: One pre-existing local row is the minimal common serialization point for empty-set creation, active-period selection, catalog uniqueness, interval changes, and acceptance races. It avoids row-discovery and lock-upgrade hazards at the cost of coarse write throughput. Distinct teachers remain permitted to share scope even though transactions serialize. Measure this cost before considering finer-grained guards; no external lock service is needed.
 
 ### Decision: Centralize authorization in policies backed by query services
 
@@ -249,7 +256,9 @@ type OwnHistoricalSubmissionView = {
     grade: Reference;
     section: Reference;
     effectiveFrom: string;
-    effectiveUntilExclusive: string | null;
+    effectiveUntil: string | null;
+    operationalStartKey: string;
+    operationalEndKeyExclusive: string | null;
   };
   originalTeachingAssignment: {
     id: string;
@@ -259,7 +268,9 @@ type OwnHistoricalSubmissionView = {
     grade: Reference;
     section: Reference;
     effectiveFrom: string;
-    effectiveUntilExclusive: string | null;
+    effectiveUntil: string | null;
+    operationalStartKey: string;
+    operationalEndKeyExclusive: string | null;
   };
 };
 
@@ -338,60 +349,76 @@ MySQL transaction or read projection
 
 ```text
 Director/Admin → TransferStudent handler → begin transaction
-                                      → lock student and current enrollment
-                                      → validate destination and non-overlap
-                                      → end prior [from, D) as transferred
-                                      → insert new active [D, infinity)
+                                      → guard, discover set, canonical exclusive locks
+                                      → reread authority, current enrollment, history
+                                      → reject same grade/section destination
+                                      → validate dates, destination and interval conflicts
+                                      → allocate effective operation key K
+                                      → end prior [start_key, K) as transferred
+                                      → insert new active [K, infinity), declared date D
                                       → append both lifecycle events
                                       → commit → return new enrollment ID
 ```
 
-If any validation or insert fails, the transaction rolls back both the prior transition and successor creation. A concurrent transfer waits on the same student lock and then re-evaluates current state.
+If any validation or insert fails, the transaction rolls back both the prior transition and successor creation. A concurrent transfer or acceptance waits on the same guard and student lock and then re-evaluates current state. From `K`, the prior enrollment is historical and never authorizes new work. Compare relevant formerly active history as intervals, not just rows currently labeled active; this does not add scheduling or retroactive corrections.
 
 ### Teacher replacement transaction
 
 ```text
 Director/Admin or Vice Principal → ReplaceTeacher handler → begin transaction
-                                                       → lock prior assignment and teachers
-                                                       → verify authority, state, scope, dates
-                                                       → end prior [from, D) as closed
-                                                       → insert distinct successor at D
+                                                       → guard, discover complete row set
+                                                       → canonical locks, both teachers before assignments
+                                                       → reread authority, state, scope, dates and conflicts
+                                                       → allocate key K, close prior at K
+                                                       → insert distinct successor at K, declared date D
                                                           with replaces_assignment_id
                                                        → append lifecycle events
                                                        → commit
 ```
 
-The successor is the active assignment effective at `D`; existing activities and submissions remain linked to the prior assignment. If successor creation fails, closure rolls back.
+The successor is the active assignment effective at `K`; existing activities and submissions remain linked to the prior assignment, including when both records start/end on the same declared date. If successor creation fails, closure rolls back. Check the successor teacher's same-period/instructional-entry/grade/section intervals against all relevant planned, active, and historical assignments; exclude neither planned nor closed rows solely by state. Validate the proposed prior end at `K` and successor start at `K` as a non-overlapping pair before persisting either change. Distinct teachers sharing scope remain valid; replacement never migrates original work.
 
 ### Submission authorization and route derivation
 
 ```text
-Student → activity ID → load activity and original assignment
-                      → lock/read student's active enrollment for acceptance date
-                      → compare period + grade + section
+Student → activity ID → begin transaction, exclusive write guard
+                      → discover complete set, canonical locks, reread activity/route
+                      → resolve authenticated student's active enrollment on server
+                      → revalidate role, state and effective scope under locks
+                      → compare period + grade + section at acceptance key K
                       → derive assignment ID from activity (never request input)
-                      → insert submission reference with enrollment + route
+                      → insert submission reference with enrollment + route + key K
                       → commit
 ```
 
 Assignment closure or replacement does not redirect the route and, by itself, does not invalidate an already-created activity. Complete activity availability remains deferred.
 
+Acceptance and transfer use the same exclusive guard and student parent lock. If acceptance linearizes first, its enrollment and original route are retained after transfer; if transfer linearizes first, acceptance resolves the successor enrollment and denies an old-scope mismatch. It never trusts a client enrollment, teacher, assignment, or recipient, or a pre-transaction policy result. Retry recomputes the entire decision; historical reads do not grant new-operation authority.
+
 ## Domain Integrity and Concurrency
 
 | Invariant | Primary enforcement | Concurrency protection |
 |---|---|---|
-| At most one active period | Generated unique active guard plus transition service | Period row/range lock and unique-index failure handling. |
+| At most one active period | Generated unique active guard plus transition service | Singleton write guard, ordered period locks, and unique-index failure handling, including creation/activation with no active row. |
 | Valid grade-section pair | Composite relationship constraint plus service validation | Foreign-key enforcement. |
-| Active-only catalog references for new enrollment/assignment | Command validation in the same transaction | Catalog rows read/locked before insert when lifecycle may change concurrently. |
-| One active enrollment interval per student/period at any moment | Overlap query and lifecycle checks | Student parent-row lock serializes enrollment writes. |
-| No overlapping duplicate assignment for same teacher and scope | Overlap query | Teacher parent-row lock serializes same-teacher assignment writes. Distinct teachers remain concurrent. |
-| Transfer is additive and non-overlapping | Single transfer handler | One transaction and student lock. |
-| Replacement is additive and non-overlapping | Single replacement handler and successor reference | One transaction and ordered assignment/teacher locks. |
+| Active-only catalog references for new enrollment/assignment | Command validation in the same transaction | Guard plus ordered catalog locks before insert; catalog lifecycle writes use the same protocol. |
+| One active enrollment interval per student/period at any moment | Overlap query over relevant occupied intervals and lifecycle checks | Guard plus student parent-row lock serializes enrollment writes and acceptance. |
+| No overlapping duplicate assignment for same teacher and scope | Interval query including relevant planned/active/history rows, with ambiguous date mappings deferred | Guard plus ordered teacher parent locks. Distinct teachers may hold concurrent domain assignments; transactions serialize. |
+| Transfer is additive and non-overlapping | Single transfer handler; reject unchanged grade/section | One transaction, guard, and student lock. |
+| Replacement is additive and non-overlapping | Single replacement handler and successor reference | Guard, complete ordered teacher set, then ordered assignment locks in one transaction. |
 | Activity keeps original assignment | Immutable application contract and restrictive FK | Update path absent; attempted mutation rejected. |
-| Submission route equals activity assignment | Acceptance handler copies route after loading activity | One transaction; route never comes from client. |
+| Submission route equals activity assignment | Acceptance handler copies route after rereading activity | Guard and student lock shared with transfers; one transaction; route never comes from client. |
 | Historical relationships survive lifecycle changes | Restrictive FKs and immutable scope | No cascade delete or bulk reassignment operation. |
 
-Locks are acquired in a documented order (period, person, aggregate ID) to reduce deadlocks. Laravel retries only transactions that are safe to retry and still re-runs all authorization and overlap checks. Integrity violations are translated to domain failures rather than exposed as raw SQL errors.
+Every foundation create, activate, close, catalog rename/reactivation/deactivation, enrollment/transfer, assignment/replacement, and minimum activity creation/submission acceptance follows this single lock protocol:
+
+1. Begin a transaction and take the singleton `academic_write_guard` with `FOR UPDATE` before authoritative row discovery. Every competing write must participate; no shared-to-exclusive upgrade is allowed.
+2. Discover the complete row set under that guard: target and related periods, catalog references, authenticated actor and subject people (both old/new teachers for replacement), affected aggregates, and relevant conflict history. A client ID or preliminary read is only a locator.
+3. Acquire exclusive row locks by fixed table rank, then ascending primary key within each table: `academic_periods`, `instructional_entries`, `grades`, `sections`, retained local identities, student identities, teacher identities, `student_enrollments`, `teaching_assignments`, `activity_references`, `submission_references`. If identities share a table, lock their union once at that table's rank; do not lock the actor early and later discover a lower-ID person. Identity table mappings must be pinned before schema implementation. Inserts of new targets need no nonexistent-row lock: the guard protects discovery and unique constraints provide the final check.
+4. Re-read all authoritative relationships and conflicting intervals with current locking reads, not an earlier snapshot. Validate role, lifecycle, active catalog references, dates, period identity, history, and route using the prospective next operation key `K` held stable by the guard; allocation occurs only after validation. If the required row set or a relationship differs from discovery, roll back and rediscover in a fresh transaction; never append an out-of-order lock or upgrade a read lock. The guard prevents such changes by participating writers; restrictive FKs and immutable scope provide additional protection. Any future competing identity writer must follow this protocol when it can change academic authority or retained identities.
+5. Allocate operation key `K`, mutate controlled fields/insert successors or references, append ledger evidence, and commit. No external effects occur inside this retryable unit. New ledger rows are inserted last and are not discovered mutable aggregates.
+
+Safe bounded retries restart the whole transaction after deadlock, discovery change, or serialization failure and re-run authorization and conflict checks; domain conflicts are returned, not blindly retried. Retry only after confirmed rollback, never automatically replay an uncertain commit or duplicate a submission. Request idempotency/ambiguous-commit recovery is an implementation dependency before automatic request replay. Integrity violations become domain failures. This coarse protocol is intentionally one common local serialization mechanism, not competing period/person versus assignment-first schemes.
 
 ## Local Operation
 
@@ -428,7 +455,7 @@ No executable test command or framework is currently present. The following is t
 
 | Layer | What to test | Planned approach |
 |---|---|---|
-| Unit | State machines, half-open overlap predicate, transfer/replacement planning, authorization decisions, route derivation | PHPUnit tests against domain and application services with deterministic school date/time. |
+| Unit | State machines, declared dates versus half-open operational keys, same-day transfer chains/replacement, period boundary validation, overlap/history checks, authorization decisions, route derivation | PHPUnit tests against domain and application services with deterministic school date/time and operation ordering. |
 | Integration | Foreign keys, generated unique guards, active-name uniqueness, grade-section integrity, append-only events, lock behavior, rollback, concurrent transfer/replacement, route equality | Laravel database tests against the approved MySQL version, including two-connection race tests rather than SQLite substitutions. |
 | Feature/API | Authentication, policy boundaries for all four roles, tampered identifiers, vice-principal projection scoping, student historical envelope, no recipient input | Laravel feature tests through HTTP adapters and real policies. |
 | Contract | PHP response DTOs and TypeScript contract compatibility | Schema-backed contract tests once API tooling is selected. |
@@ -458,7 +485,7 @@ This is a greenfield, pre-implementation repository, so there is no existing app
 
 1. Approve this design and a role-appropriate prototype before scaffolding.
 2. Confirm the supported PHP, Laravel, and MySQL versions during implementation planning; generated columns and enforced checks must be validated against that exact MySQL version.
-3. Create schema in dependency order: catalog/period records, enrollments/assignments, lifecycle events, then minimum activity/submission references when their capability implementation begins.
+3. Create schema in dependency order: retained identity dependencies and singleton write guard, catalog/period records, enrollments/assignments, typed lifecycle-event FKs, then minimum activity/submission references when their capability implementation begins. Final identity tables and temporal/equality rules require resolution before affected migrations.
 4. Apply migrations to an empty non-production database and verify constraints with integration tests.
 5. Seed only institution-approved catalog and identity references through auditable commands; do not import or imply SIAGIE replacement.
 6. Exercise role, concurrency, historical-read, and external-Internet-loss scenarios on the school-network staging environment.
@@ -491,4 +518,11 @@ No local/remote synchronization migration, deployment web-server selection, or p
 
 ## Open Technical Questions
 
-None block this design. Exact framework and database versions, authentication mechanism, API schema tooling, institutional seed/import format, and IIS-versus-Apache deployment choice must be selected in later approved work. Those choices must preserve this design's local authority, transaction, authorization, and historical-reference contracts and must not be inferred from the currently empty implementation directories.
+Independent technical clarifications above are usable, but the design is not fully implementation-ready. The approved specs leave these product decisions unresolved; this document does not choose them:
+
+- Mapping non-current supplied effective dates and ambiguous same-day planned assignment boundaries to operational order. Future/retroactive transfer, replacement, and correction workflows remain unsupported by this design, not newly prohibited by a product rule.
+- Whether enrollment dates must be contained within their period dates; period identity binding alone does not impose this rule.
+- The operation matrix for still-active enrollments/assignments under a closed period, including new work on existing activities. Closed periods are not current; closure does not cascade; original routes remain immutable.
+- Name equality beyond definite exact duplicates: case, whitespace, Unicode equivalence, and accents, within the approved uniqueness scopes.
+
+Exact framework/database versions, school time-zone configuration, retained identity table mappings and FK/permission implementation, retry/idempotency mechanics, authentication mechanism, API schema tooling, institutional seed/import format, and IIS-versus-Apache deployment remain technical implementation dependencies. They must preserve local authority and historical retention and must not be inferred from empty implementation directories. No tasks, schema, or code are introduced by this bounded document correction.
