@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EVAL — Academic scope review</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="fixtures.js" defer></script>
+  <script src="projections.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#review">Skip to academic review</a>
+  <header class="shell">
+    <p class="eyebrow">Academic foundation · Human review</p>
+    <h1>EVAL — Synthetic read-only prototype</h1>
+    <div class="banner">
+      <strong>Persona selection is not authentication or permissions.</strong>
+      <p>All fixtures are inspectable. Invented people and sample relationships only; no institutional data, accounts, or academic writes.</p>
+    </div>
+  </header>
+  <main id="review" class="shell" tabindex="-1">
+    <section class="controls" aria-labelledby="controls-title">
+      <h2 id="controls-title">Choose a demonstration view</h2>
+      <p>These controls change presentation only. They do not select a receiving teacher or establish academic authority.</p>
+      <div class="selectors">
+        <div>
+          <label for="persona">Sample persona</label>
+          <select id="persona"></select>
+        </div>
+        <div>
+          <label for="scenario">Sample scenario</label>
+          <select id="scenario"></select>
+        </div>
+      </div>
+      <p id="status" role="status" aria-live="polite" aria-atomic="true">Preparing the local sample view.</p>
+    </section>
+    <noscript>This review requires local JavaScript. Enable it to display the invented sample fixtures. No server is needed.</noscript>
+    <section aria-labelledby="summary-title">
+      <h2 id="summary-title">View context</h2>
+      <div id="summary" class="notice"></div>
+    </section>
+    <section aria-labelledby="current-title">
+      <h2 id="current-title">Current sample scope — not work permission</h2>
+      <div id="current" class="cards"></div>
+    </section>
+    <section aria-labelledby="assignments-title">
+      <h2 id="assignments-title">Teaching assignment references</h2>
+      <p>Each assignment has its own identity, even when teachers share a subject, grade, and section.</p>
+      <div id="assignments" class="cards"></div>
+    </section>
+    <section aria-labelledby="enrollments-title">
+      <h2 id="enrollments-title">Own enrollment history</h2>
+      <div id="enrollments" class="cards"></div>
+    </section>
+    <section aria-labelledby="history-title">
+      <h2 id="history-title">Retained submissions — original context</h2>
+      <p>Original assignment and accepted-under enrollment remain distinct from today's scope. Replacement does not migrate original ownership.</p>
+      <div id="history" class="cards"></div>
+    </section>
+    <aside class="notice" aria-labelledby="boundary-title">
+      <h2 id="boundary-title">What this review does not implement</h2>
+      <p>Assignment closure alone does not redirect existing work. The future minimum routing contract still uses the original assignment with a non-closed parent and currently matching enrollment; complete activity availability is deferred.</p>
+      <p>Period closure prohibits every new academic-work category, including late submissions, while preserving role-bounded history. Here, all scenarios are read-only: there is no acceptance engine or lifecycle operation.</p>
+      <p>Declared dates and operational keys below are separate synthetic evidence, not a date-to-key conversion. Display labels resolve retained sample identities; immutable historical label snapshots are not claimed.</p>
+    </aside>
+  </main>
+  <footer class="shell">Prototype acceptance and application architecture approval remain pending. This artifact does not complete gate 1.1.</footer>
+</body>
+</html>
