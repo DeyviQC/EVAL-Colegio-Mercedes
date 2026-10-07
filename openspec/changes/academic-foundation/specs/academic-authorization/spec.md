@@ -8,7 +8,7 @@ Define server-derived authorization for EVAL's academic roles, current scope, an
 
 ### Requirement: Server-derived authorization context
 
-For every protected academic operation, EVAL MUST derive authorization on the school-hosted server from the authenticated user, role, relevant academic period, and authoritative enrollment or teaching-assignment relationships. EVAL MUST NOT treat freely supplied client scope as authorization evidence.
+For every protected academic operation, EVAL MUST derive authorization on the school-hosted server from the authenticated user, role, relevant academic period, and authoritative enrollment or teaching-assignment relationships. EVAL MUST NOT treat freely supplied client scope as authorization evidence. EVAL MUST distinguish current-period resolution from requested-resource period validation: a closed parent MUST deny new academic work despite active children, while a planned parent MUST NOT be rejected merely because it is not current for an otherwise permitted planning operation. Valid residual administrative closure and role-bounded historical reads MUST remain separate from new academic work.
 
 #### Scenario: Authorize from authoritative relationships
 
@@ -16,6 +16,7 @@ For every protected academic operation, EVAL MUST derive authorization on the sc
 - WHEN EVAL evaluates the request
 - THEN EVAL MUST resolve the user's role and required academic relationships from authoritative local records
 - AND EVAL MUST authorize the operation only when all required relationships permit it
+- AND EVAL MUST validate the requested resource's parent state rather than substituting the current period or trusting an active child
 
 #### Scenario: Reject a tampered scope parameter
 
@@ -32,7 +33,7 @@ For every protected academic operation, EVAL MUST derive authorization on the sc
 
 ### Requirement: Director and administrator authority
 
-An authenticated director/administrator MUST be permitted to manage academic periods, catalog entries, student enrollments, and teaching assignments, subject to each capability's lifecycle and validation rules. This role MUST be permitted to review current and historical records in those capabilities.
+An authenticated director/administrator MUST be permitted to manage academic periods, catalog entries, student enrollments, and teaching assignments, subject to each capability's lifecycle and validation rules. This role MUST be permitted to review current and historical records in those capabilities and explicitly close residual active enrollments and assignments under a closed period with valid dates. This cleanup is not new academic work and MUST NOT bypass date validation or rewrite history. Global catalog operations and other periods MUST remain unaffected by closure of one period.
 
 #### Scenario: Manage an academic foundation record
 
@@ -40,6 +41,14 @@ An authenticated director/administrator MUST be permitted to manage academic per
 - WHEN EVAL evaluates authorization
 - THEN EVAL MUST permit the operation
 - AND EVAL MUST still enforce the target capability's constraints
+- AND permitted residual administrative closure MUST NOT be denied as new academic work
+
+#### Scenario: Administratively close residual active records
+
+- GIVEN a closed period has residual active enrollments or assignments
+- WHEN an authenticated director/administrator explicitly closes a residual record with valid dates
+- THEN EVAL MUST permit closure and preserve its identity, scope, and retained history
+- AND EVAL MUST NOT create a successor or rewrite accepted submission context
 
 #### Scenario: Review historical academic records
 
@@ -49,13 +58,21 @@ An authenticated director/administrator MUST be permitted to manage academic per
 
 ### Requirement: Vice-principal assignment authority
 
-An authenticated vice principal MUST be permitted to create, activate, close, replace, and review teaching assignments. EVAL MUST permit the vice principal to read only the academic-period, catalog, and enrollment information necessary for those assignment duties. A vice principal MUST NOT manage academic periods, catalog entries, or student enrollments unless another explicitly authorized role grants that authority. Within `academic-foundation`, the vice principal MUST NOT receive permission to manage or process educational materials, observations, activities, or submissions.
+An authenticated vice principal MUST be permitted to create, activate, close, replace, and review teaching assignments subject to their lifecycle, date, and parent-period constraints. This includes explicit closure of residual active assignments under a closed period with valid dates, but not creation, activation, or replacement successors there. EVAL MUST permit the vice principal to read only the academic-period, catalog, and enrollment information necessary for those assignment duties. A vice principal MUST NOT manage academic periods, catalog entries, or student enrollments unless another explicitly authorized role grants that authority. Within `academic-foundation`, the vice principal MUST NOT receive permission to manage or process educational materials, observations, activities, or submissions.
 
 #### Scenario: Manage a teaching assignment
 
-- GIVEN an authenticated vice principal submits a valid teaching-assignment lifecycle operation
+- GIVEN an authenticated vice principal submits a teaching-assignment lifecycle operation valid under the requested period's state and assignment date rules
 - WHEN EVAL evaluates authorization
 - THEN EVAL MUST permit the operation
+- AND valid explicit closure of a residual active assignment under a closed period MUST remain permitted without granting successor creation or enrollment management
+
+#### Scenario: Limit vice-principal residual cleanup to assignments
+
+- GIVEN a closed period has residual active assignments and enrollments
+- WHEN a vice principal with no additional authorized role requests valid explicit residual assignment closure
+- THEN EVAL MUST permit assignment closure subject to valid contained dates
+- AND EVAL MUST deny residual enrollment closure by that role
 
 #### Scenario: Deny enrollment management
 
@@ -83,11 +100,11 @@ An authenticated vice principal MUST be permitted to create, activate, close, re
 
 ### Requirement: Teacher assignment boundary
 
-An authenticated teacher MUST be permitted to act only through teaching assignments belonging to that teacher. The teacher MUST be permitted to create activities only for the teacher's active assignments and MAY review historical activities and submissions belonging to the teacher's closed assignments.
+An authenticated teacher MUST be permitted to act only through teaching assignments belonging to that teacher. The teacher MUST be permitted to create activities only for the teacher's active assignments in non-closed periods and MAY review retained historical activities and submissions belonging to the teacher's assignments, including after period closure. Active assignment state MUST NOT grant new-work authority under a closed parent.
 
 #### Scenario: Act within an active assignment
 
-- GIVEN an authenticated teacher owns an active teaching assignment
+- GIVEN an authenticated teacher owns an active teaching assignment in a non-closed period
 - WHEN the teacher requests an allowed assignment-bound operation
 - THEN EVAL MUST permit the operation within that assignment's scope
 
@@ -106,11 +123,11 @@ An authenticated teacher MUST be permitted to act only through teaching assignme
 
 ### Requirement: Student enrollment boundary
 
-An authenticated student MUST access new activities and create new submissions only through the student's active enrollment for the relevant period. A historical enrollment MUST NOT authorize either operation. EVAL MUST permit the student to read the student's own enrollment history and submissions made before a transfer, but the student MUST NOT access another student's records or unrelated academic scope.
+An authenticated student MUST access new activities and create new submissions only through the student's active enrollment for the relevant non-closed period. A historical enrollment or active enrollment under a closed period MUST NOT authorize either operation. EVAL MUST permit the student to read the student's own enrollment history and retained submissions with original context after transfer or period closure, but the student MUST NOT access another student's records or unrelated academic scope.
 
 #### Scenario: Access an activity within active enrollment scope
 
-- GIVEN an authenticated student has an active enrollment matching an activity's grade and section in the relevant period
+- GIVEN an authenticated student has an active enrollment matching an activity's period, grade, and section in a non-closed relevant period
 - WHEN the student requests the activity
 - THEN EVAL MUST permit access within the student's active enrollment scope
 
@@ -140,13 +157,27 @@ An authenticated student MUST access new activities and create new submissions o
 
 ### Requirement: Historical authorization boundaries
 
-A historical academic relationship MAY grant role-appropriate historical read access when applicable, but MUST NEVER authorize creation of a new academic operation. EVAL MUST limit historical read access to director/administrator across academic history, vice principal across assignment history, teachers for their own assignments, and students for their own enrollments and submissions.
+A historical academic relationship MAY grant role-appropriate historical read access when applicable, but MUST NEVER by itself authorize creation of new academic work. EVAL MUST limit historical read access to director/administrator across academic history, vice principal across assignment history and necessary supporting projections, teachers for their own assignments, and students for their own enrollments and submissions. Valid explicit residual administrative closure is permitted cleanup, not new work. A closed assignment's original route MAY support minimum acceptance for an existing activity only with a non-closed parent and a currently compatible active enrollment; the historical assignment alone is not submission authority.
 
 #### Scenario: Prevent historical scope from granting current authority
 
 - GIVEN a user had academic scope through a now-closed enrollment or teaching assignment
-- WHEN the user requests creation of a new academic operation based only on that historical relationship
+- WHEN the user requests creation of new academic work based only on that historical relationship, without the required current authority
 - THEN EVAL MUST deny the operation
+
+#### Scenario: Deny every new-work category under a closed parent
+
+- GIVEN the requested resource's academic period is closed, regardless of any active child state
+- WHEN new enrollment, transfer successor, assignment creation including planned creation, assignment activation, replacement successor, activity creation, or normal or late submission acceptance is requested
+- THEN EVAL MUST deny the operation without academic mutations
+- AND EVAL MUST NOT deny valid role-authorized residual closure or global catalog and other-period operations merely because this period is closed
+
+#### Scenario: Read closed-period history within role boundaries
+
+- GIVEN an academic period is closed
+- WHEN an authenticated user requests retained history
+- THEN EVAL MUST permit director/administrator academic-history reads, vice-principal assignment history and necessary supporting reads, teacher own-assignment history, and student own enrollment and submission history only within those boundaries
+- AND EVAL MUST retain original identities, owners, routes, and accepted-under enrollment context without granting new-work authority
 
 #### Scenario: Permit role-appropriate historical reading
 
