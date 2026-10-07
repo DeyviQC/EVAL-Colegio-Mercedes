@@ -76,3 +76,7 @@ The project reviewer accepted the synthetic four-role prototype for academic-fou
 ## Verified U1 superseding status (2026-10-07)
 
 The human explicitly approved permanent shared BIGINT identities, retention/minimum privileges, isolated MySQL startup and U1-only implementation, then removed the line limit. U1/2.1–2.3 are now verified: 43 tests, 150 assertions, MySQL 8.4.9. See docs/u1-verification.md for exact authority, RED/GREEN limits, commands, criterion mapping and rollback/permission evidence. Earlier UUID candidates and pending-U1 statements are historical. No new gate closure, U2/U3 work or remote authority is inferred.
+
+## Verified U2 superseding status (2026-10-07)
+
+U2/2.4 has now been separately reconciled and verified under the human FASE 2 authorization: 27 tests / 182 assertions; U1 regression remains 43 / 150. See docs/u2-readiness.md and docs/u2-verification.md. Earlier frozen-U2 statements describe the previous boundary. No specs were altered. Gates 1.2–1.8 remain pending; U3 awaits explicit retry/replay mechanics. No external implementation or remote operation was introduced.

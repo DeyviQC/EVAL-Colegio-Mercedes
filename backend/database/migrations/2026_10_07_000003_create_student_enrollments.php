@@ -1,57 +1,48 @@
 <?php
 
 declare(strict_types=1);
-
 use Illuminate\Database\Capsule\Manager as DB;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 
-/**
- * Task 2.4 Migration 2: Student enrollments table.
- *
- * Implements:
- * - Restrictive foreign keys to retained student identity, academic period, grade,
- *   and composite foreign key (section_id, grade_id) to sections(id, grade_id).
- * - State check constraint (planned, active, transferred, closed).
- * - Declared date order check (effective_from <= effective_until).
- * - Operational ordinal order check (start_ordinal < end_ordinal).
- * - Approved decision 1.3: No enrollment-containment constraint at database schema level.
- */
 return new class extends Migration {
     public function up(): void
     {
         DB::schema()->create('student_enrollments', function (Blueprint $table) {
-            $table->char('id', 36);
-            $table->char('student_id', 36);
-            $table->char('academic_period_id', 36);
-            $table->char('grade_id', 36);
-            $table->char('section_id', 36);
-            $table->string('state', 32)->default('active');
+            $table->id();
+            foreach (['student_id'=>'retained_identities','academic_period_id'=>'academic_periods','grade_id'=>'grades'] as $column=>$parent) {
+                $table->foreignId($column)->constrained($parent)->restrictOnDelete()->restrictOnUpdate();
+            }
+            $table->unsignedBigInteger('section_id');
+            $table->foreign(['section_id','grade_id'])->references(['id','grade_id'])->on('sections')->restrictOnDelete()->restrictOnUpdate();
+            $table->string('state',32)->default('active');
             $table->date('effective_from');
             $table->date('effective_until')->nullable();
-            $table->unsignedBigInteger('start_ordinal');
-            $table->unsignedBigInteger('end_ordinal')->nullable();
-            $table->timestamp('created_at')->useCurrent();
-            $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
-
-            $table->primary('id');
-
-            $table->foreign('student_id')->references('id')->on('retained_identities')->onDelete('restrict');
-            $table->foreign('academic_period_id')->references('id')->on('academic_periods')->onDelete('restrict');
-            $table->foreign('grade_id')->references('id')->on('grades')->onDelete('restrict');
-            $table->foreign(['section_id', 'grade_id'])->references(['id', 'grade_id'])->on('sections')->onDelete('restrict');
+            $table->unsignedBigInteger('operational_start_key');
+            $table->unsignedBigInteger('operational_end_key')->nullable();
+            $table->timestamps();
         });
-
-        DB::connection()->statement('
-            ALTER TABLE `student_enrollments`
-            ADD CONSTRAINT `chk_enrollment_state` CHECK (`state` IN (\'planned\', \'active\', \'transferred\', \'closed\')),
-            ADD CONSTRAINT `chk_enrollment_dates` CHECK (`effective_until` IS NULL OR `effective_from` <= `effective_until`),
-            ADD CONSTRAINT `chk_enrollment_ordinals` CHECK (`end_ordinal` IS NULL OR `start_ordinal` < `end_ordinal`)
-        ');
+        DB::connection()->statement(<<<'SQL'
+            ALTER TABLE student_enrollments
+            ADD CONSTRAINT enrollment_state CHECK (state IN ('active','transferred','closed')),
+            ADD CONSTRAINT enrollment_dates CHECK
+                (effective_until IS NULL OR effective_from<=effective_until),
+            ADD CONSTRAINT enrollment_keys CHECK (
+                operational_start_key BETWEEN 1 AND 9223372036854775807 AND
+                (operational_end_key IS NULL OR
+                    (operational_end_key>operational_start_key AND
+                     operational_end_key<=9223372036854775807))),
+            ADD CONSTRAINT enrollment_lifecycle CHECK (
+                (state='active' AND operational_end_key IS NULL) OR
+                (state IN ('closed','transferred') AND effective_until IS NOT NULL AND operational_end_key IS NOT NULL)),
+            ADD active_student BIGINT UNSIGNED GENERATED ALWAYS AS
+                (CASE WHEN state='active' THEN student_id ELSE NULL END) STORED,
+            ADD UNIQUE INDEX uq_enrollment_active(academic_period_id,active_student)
+            SQL);
+        // No enrollment-period date containment or automatic expiry rule.
     }
-
     public function down(): void
     {
-        DB::schema()->dropIfExists('student_enrollments');
+        throw new RuntimeException('Preserve enrollment history; use a reviewed forward repair.');
     }
 };

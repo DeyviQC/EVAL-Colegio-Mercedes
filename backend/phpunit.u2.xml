@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="bootstrap.php" cacheResult="false" failOnEmptyTestSuite="true" failOnWarning="true" failOnRisky="true">
+    <testsuites><testsuite name="U2">
+        <file>tests/Unit/Academic/AcademicNameKeyTest.php</file>
+        <file>tests/Feature/Academic/FoundationSchemaTest.php</file>
+    </testsuite></testsuites>
+</phpunit>

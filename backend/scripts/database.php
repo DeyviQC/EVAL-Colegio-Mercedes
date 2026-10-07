@@ -7,8 +7,10 @@ require_once dirname(__DIR__).'/bootstrap.php';
 use Illuminate\Database\Capsule\Manager;
 use Illuminate\Events\Dispatcher;
 
-if (getenv('EVAL_DB_HOST') !== '127.0.0.1' || getenv('EVAL_DB_NAME') !== 'eval_u1_test') {
-    throw new RuntimeException('Only the disposable U1 database is permitted.');
+$unit = getenv('EVAL_UNIT') ?: 'U1';
+$expectedDatabase = match ($unit) { 'U1' => 'eval_u1_test', 'U2' => 'eval_u2_test', default => null };
+if (getenv('EVAL_DB_HOST') !== '127.0.0.1' || $expectedDatabase === null || getenv('EVAL_DB_NAME') !== $expectedDatabase) {
+    throw new RuntimeException('Only the selected isolated unit database is permitted.');
 }
 $database = new Manager;
 $config = [
