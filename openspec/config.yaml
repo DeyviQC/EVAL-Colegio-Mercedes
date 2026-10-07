@@ -1,0 +1,202 @@
+schema: spec-driven
+
+context: |
+  System: EVAL, for I.E. Nuestra Señora de las Mercedes.
+  Product: Institutional hybrid educational web platform served primarily from the school network.
+  Essential availability: Student functions must not require external Internet while local server, network, and power are available.
+  Repository state: No application project markers, dependencies, CI, or executable test commands are present.
+  Planned stack: Windows Server, Laravel/PHP, MySQL, React/TypeScript, and Tailwind CSS; this is a decision, not detected implementation.
+  Access: Browser only over LAN/WLAN; a later remote component will synchronize selected functions.
+  Delivery: OpenSpec SDD, interactive pace, ask on risk, and a 400 changed-line review threshold.
+
+project:
+  official_name: EVAL
+  repository: EVAL-Colegio-Mercedes
+  beneficiary: I.E. Nuestra Señora de las Mercedes
+  naming:
+    - Use EVAL as the only system name in specifications, code, and documentation.
+    - Do not introduce legacy or alternate product names.
+  objective:
+    - Provide an institutional hybrid educational web platform.
+    - Let students use school tablets over the local network to access materials, activities, the library, and educational resources.
+    - Keep essential functions independent of external Internet when the local server, network, and power are available.
+  roles:
+    director_administrator:
+      responsibilities:
+        - General administration.
+        - Academic assignments.
+    vice_principal:
+      responsibilities:
+        - Academic assignments.
+        - Review teacher-published materials.
+        - Send private, material-specific observations to teachers for correction.
+    teacher:
+      scope: Assigned subjects or areas, grades, and sections only.
+      responsibilities:
+        - Upload, modify, delete, and download educational materials.
+        - Create activities and receive routed submissions.
+        - Manage auxiliary grades.
+    student:
+      scope: Subjects or areas for the student's own grade and section only.
+      responsibilities:
+        - Consult educational materials.
+        - Complete activities and submit work.
+  academic_model:
+    academic_periods:
+      - Every student enrollment and teaching assignment MUST belong to an academic period.
+      - Historical academic periods MUST be retained.
+    student_enrollment:
+      - A student has an enrollment for each academic period that determines the student's grade and section.
+      - Visibility of subjects or areas, activities, and resources derives from the student's enrollment.
+    teaching_assignments:
+      identity: Academic period + teacher + subject/area + grade + section, with a distinct assignment identity.
+      constraints:
+        - A teacher MAY have multiple teaching assignments.
+        - Multiple teachers MAY serve the same subject or area, grade, and section, but each teaching assignment MUST retain its own identity.
+        - A teacher change MUST close or deactivate the prior teaching assignment and create a new assignment; it MUST NOT overwrite or delete historical assignments.
+        - Historical activities and submissions MUST retain their relationship to the original teaching assignment.
+    assignment_authorities:
+      - Director/Administrator
+      - Vice Principal
+    activity_submission_contract:
+      - An activity MUST belong to one specific teaching assignment.
+      - A submission MUST link automatically to its activity and the activity's original teaching assignment.
+      - Students MUST NOT select a recipient teacher.
+      - "Routing is derived as: Student -> Enrollment -> Academic period/Grade/Section -> Teaching assignment -> Activity -> Submission."
+    authorization:
+      - Academic authorization MUST be derived server-side from enrollment, teaching assignment, academic period, and user role.
+      - Academic authorization MUST NOT trust freely supplied client parameters.
+    constraints:
+      - Route submissions automatically from academic assignments.
+      - Students must not select the teacher who receives an activity submission.
+  academic_foundation:
+    scope:
+      - Academic periods
+      - Basic academic catalog
+      - Grades and sections
+      - Student enrollment
+      - Teaching assignments
+      - Academic authorization rules
+      - Minimal contracts for the future activity-submission flow
+    exclusions:
+      - Educational materials
+      - Vice-principal observations
+      - AD/A/B/C grading
+      - Library
+      - Educational search
+      - Advanced file storage
+      - Final UI
+      - Local and remote synchronization
+  planned_modules:
+    - User administration
+    - Subjects/areas, grades, and sections
+    - Teacher assignments
+    - Educational materials
+    - Material review and private observations
+    - Activities and submissions
+    - Auxiliary grade register using AD, A, B, and C
+    - Institutional library
+    - Local educational search over stored and indexed content
+    - Classroom screen or board material presentation
+    - Local and remote synchronization
+    - Auditing and backups
+  scope:
+    exclusions:
+      - Replacing SIAGIE
+    deferred:
+      - Existing QR attendance system
+  architecture:
+    local:
+      server: School-hosted local server
+      clients: School tablets using browser access over LAN/WLAN
+      availability: Essential student functions remain available without external Internet when local infrastructure and power are available.
+    remote:
+      purpose: Support later-defined teacher and director functions.
+      integration: Synchronize with the local component; behavior and conflict policy remain to be defined.
+  stack_decisions:
+    server_os: Windows Server
+    backend: PHP with Laravel
+    database: MySQL
+    frontend: React with TypeScript
+    styling: Tailwind CSS
+    web_server: Undecided between IIS and Apache
+    client_delivery: Browser only; no Android application
+    version_control: Git with GitHub as the collaborative versioning source
+    containers: Docker is not required
+    orchestration: Kubernetes is excluded
+  delivery_method:
+    methodology: Spec-Driven Development with OpenSpec
+    sequence: Prototype before implementation
+    planned_test_layers:
+      - Unit
+      - Integration
+      - E2E
+      - Load
+
+strict_tdd: false
+
+testing:
+  detected_at: 2026-10-06
+  detection_scope: Repository root and candidate project roots up to two directory levels below it.
+  reason: No in-scope application project roots or explicit workspace-wide test command were found.
+  planned_layers_are_not_detected_capabilities: true
+  workspace_test_command: ""
+  projects: []
+  layers:
+    unit: unavailable
+    integration: unavailable
+    e2e: unavailable
+    load: unavailable
+  coverage:
+    available: false
+    command: ""
+  quality:
+    linter:
+      available: false
+      command: ""
+    type_checker:
+      available: false
+      command: ""
+    formatter:
+      available: false
+      command: ""
+
+rules:
+  proposal:
+    - State intent, scope, exclusions, dependencies, risks, and rollback considerations.
+    - Use EVAL as the only system name.
+    - Distinguish agreed future architecture from repository-detected implementation.
+  specs:
+    - Use RFC 2119 keywords for normative requirements.
+    - Write acceptance scenarios in Given/When/Then form.
+    - Preserve role and academic-assignment boundaries.
+    - Require automatic submission routing; students cannot choose a receiving teacher.
+    - Treat offline-from-external-Internet operation as essential when local infrastructure is available.
+  design:
+    - Document architecture decisions and tradeoffs with rationale.
+    - Preserve separation between local availability and later remote synchronization concerns.
+    - Define synchronization ownership, conflict handling, auditing, and recovery before implementation.
+    - Do not select IIS or Apache without an explicit decision.
+  tasks:
+    - Group tasks by phase and number them hierarchically.
+    - Keep each task reviewable and include tests with new behavior.
+    - Flag plans likely to exceed 400 changed lines before implementation.
+    - Keep SIAGIE replacement and QR attendance outside the initial scope.
+  apply:
+    guidelines:
+      - Implement only approved requirements and design decisions after a prototype is accepted.
+      - Follow detected project conventions; do not treat the planned stack as installed dependencies.
+      - Validate external input, handle errors explicitly, and never commit secrets.
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: ""
+    coverage_threshold: 0
+    guidelines:
+      - Report unavailable checks rather than inferring or fabricating results.
+      - Verify unit, integration, E2E, and load capabilities only after executable tooling exists.
+      - Review correctness, security, privacy, architecture, tests, error handling, complexity, secrets, and regressions.
+  archive:
+    - Warn before merging destructive deltas.
+    - Preserve archived changes as an immutable audit trail.
