@@ -51,3 +51,21 @@ No commit may assert completed functionality while its required evidence is abse
 ## Prototype verification update
 
 Management projections added with meaningful RED (8 pass / 1 failure) and GREEN (15/15 full Node suite). Node used --test-isolation=none because sandbox subprocess spawning was unavailable. Director/Admin and assignment-target Vice Principal samples now exist. No browser/manual acceptance is claimed.
+
+## U1 declared-date evidence (2026-10-07)
+
+DeclaredDateRange now validates real YYYY-MM-DD calendar dates and start/end order, permits same-day ranges, and applies containment only through the explicit assignment method. The planning horizon is the inclusive declared end plus one calendar day; open assignment dates remain open and no operational authority is inferred. EffectiveInterval historicalView returns declared dates separately from string ordinals.
+
+Meaningful assertion RED against date stubs: 18 tests, 4 failures (invalid date, inverted range, planning horizon, outside-period assignment). GREEN including historical projection: 19 tests, 47 assertions. Projection was checked after implementation; no separate projection RED is claimed. No transfer writer, scheduling/date-key mapping, U2/U3 handler or lifecycle ledger was introduced.
+
+Read-only db-smoke attempt failed before connection because the isolated runtime's recorded PID 2572 was not running. MySQL integration evidence remains unavailable; no other installed database service was used and no migration executed. Tasks 2.1–2.3 remain pending: unsupported transfer/no-mutation contract, identity-mapping/non-reuse acceptance and real integration evidence still require resolution. Existing candidate U2 schema is unchanged.
+
+Reproduce pure unit checks in PowerShell (existing isolated runtime only):
+
+```powershell
+$evalRuntime = Join-Path $env:LOCALAPPDATA 'Temp\opencode\eval-u1'
+$env:EVAL_VENDOR_DIR = Join-Path $evalRuntime 'vendor'
+& (Join-Path $evalRuntime 'php\php.exe') -c (Join-Path $evalRuntime 'php.ini') (Join-Path $evalRuntime 'vendor\phpunit\phpunit\phpunit') --bootstrap backend/bootstrap.php --no-configuration backend/tests/Unit/Academic
+```
+
+Architecture/prototype acceptance and the pending gates remain prerequisites to full application development. General permission to continue is not recorded as an observed manual review or passing integration run.

@@ -42,6 +42,17 @@ final readonly class EffectiveInterval
         return $this->end === null;
     }
 
+    /** Projection only; declared dates do not establish operational keys. */
+    public function historicalView(DeclaredDateRange $dates): array
+    {
+        return [
+            'effectiveFrom' => $dates->from,
+            'effectiveUntil' => $dates->until,
+            'operationalStartKey' => (string) $this->start->ordinal,
+            'operationalEndKeyExclusive' => $this->end === null ? null : (string) $this->end->ordinal,
+        ];
+    }
+
     /**
      * Determines whether the given point falls within [start, end).
      */

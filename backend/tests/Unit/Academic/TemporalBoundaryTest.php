@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Academic;
 
 use App\Domain\Academic\EffectiveInterval;
+use App\Domain\Academic\DeclaredDateRange;
 use App\Domain\Academic\OperationalBoundary;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -27,6 +28,64 @@ use PHPUnit\Framework\TestCase;
 final class TemporalBoundaryTest extends TestCase
 {
     private DateTimeZone $utc;
+
+    public function testDeclaredDatesPermitSameDayAndRemainSeparateFromOrdinals(): void
+    {
+        $dates = new DeclaredDateRange('2026-03-01', '2026-03-01');
+        $this->assertSame($dates->from, $dates->until);
+        $this->assertSame('2026-03-01', $dates->from);
+    }
+
+    public function testInvalidCalendarDateIsRejected(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        new DeclaredDateRange('2026-02-30');
+    }
+
+    public function testInvertedDeclaredDatesAreRejected(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        new DeclaredDateRange('2026-03-02', '2026-03-01');
+    }
+
+    public function testAssignmentContainmentIsInclusiveAndOpenEndHasPlanningHorizonOnly(): void
+    {
+        $period = new DeclaredDateRange('2026-03-01', '2026-12-20');
+        $assignment = new DeclaredDateRange('2026-03-01', '2026-12-20');
+        $assignment->assertAssignmentContainedIn($period);
+        $this->assertSame('2026-12-21', $assignment->planningEndExclusive($period));
+        $open = new DeclaredDateRange('2026-03-01');
+        $open->assertAssignmentContainedIn($period);
+        $this->assertSame('2026-12-21', $open->planningEndExclusive($period));
+        $this->assertNull($open->until);
+    }
+
+    public function testAssignmentOutsidePeriodIsRejected(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        (new DeclaredDateRange('2026-02-28'))->assertAssignmentContainedIn(
+            new DeclaredDateRange('2026-03-01', '2026-12-20')
+        );
+    }
+
+    public function testEnrollmentDatesDoNotGainAnImplicitPeriodContainmentRule(): void
+    {
+        $enrollment = new DeclaredDateRange('2026-01-01');
+        $this->assertSame('2026-01-01', $enrollment->from);
+        $this->assertNull($enrollment->until);
+    }
+
+    public function testHistoricalViewPreservesDatesAndStringOperationalKeys(): void
+    {
+        $interval = new EffectiveInterval(
+            new OperationalBoundary(10, new DateTimeImmutable('2026-03-01T00:00:00Z')),
+            new OperationalBoundary(20, new DateTimeImmutable('2026-03-01T00:00:00Z'))
+        );
+        $this->assertSame([
+            'effectiveFrom' => '2026-03-01', 'effectiveUntil' => '2026-03-01',
+            'operationalStartKey' => '10', 'operationalEndKeyExclusive' => '20',
+        ], $interval->historicalView(new DeclaredDateRange('2026-03-01', '2026-03-01')));
+    }
 
     protected function setUp(): void
     {
