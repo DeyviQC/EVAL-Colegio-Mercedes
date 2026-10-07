@@ -69,3 +69,6 @@ $env:EVAL_VENDOR_DIR = Join-Path $evalRuntime 'vendor'
 ```
 
 Architecture/prototype acceptance and the pending gates remain prerequisites to full application development. General permission to continue is not recorded as an observed manual review or passing integration run.
+## Explicit human acceptance (2026-10-07)
+
+The project reviewer accepted the synthetic four-role prototype for academic-foundation validation and approved the current base architecture while preserving unresolved questions. See docs/academic-foundation-gate-1.1-approval.md for reviewed revision, authority, consistency and exact limits. Gate 1.1 is now complete; earlier pending-acceptance statements are historical. No manual browser/accessibility pass is asserted. Gates 1.2–1.8 and U1 completion remain pending; U2 remains blocked and U3 is excluded.

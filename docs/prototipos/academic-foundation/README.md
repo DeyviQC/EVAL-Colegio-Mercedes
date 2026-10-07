@@ -82,3 +82,6 @@ The sample now includes Alex Willow (Director/Admin) and Taylor Ash (Vice Princi
 New management projection test: RED 8 passed / 1 assertion failure; GREEN full suite 15 passed / 0 failed. The old safe-text test was corrected to locate student-river by ID rather than array position after adding personas. Command used: node --test --test-isolation=none "docs/prototipos/academic-foundation/tests/*.test.mjs". Default subprocess isolation hit sandbox spawn EPERM; in-process execution supplied meaningful assertion evidence. Prior 14-test results above are historical. Browser/accessibility and human acceptance remain pending.
 
 OpenSpec is normative. See docs/reconciliation-academic-foundation.md for gate 1.1 review requirements; this artifact remains separate from backend persistence and authority.
+## Explicit human acceptance (2026-10-07)
+
+The project reviewer accepted the synthetic four-role prototype for academic-foundation validation and approved the current base architecture while preserving unresolved questions. See docs/academic-foundation-gate-1.1-approval.md for reviewed revision, authority, consistency and exact limits. Gate 1.1 is now complete; earlier pending-acceptance statements are historical. No manual browser/accessibility pass is asserted. Gates 1.2–1.8 and U1 completion remain pending; U2 remains blocked and U3 is excluded.
