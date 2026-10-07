@@ -1,0 +1,93 @@
+/* Identidad basada en el escudo suministrado: azul, rojo, blanco y dorado. */
+:root{--ink:#172449;--muted:#66718a;--teal:#182c83;--line:#e2e6f0;--gold:#b3a32b;--red:#c91e32}
+body{background:#f5f6fb}
+.sidebar{border-top:5px solid var(--gold);padding-top:25px;overflow-y:auto}
+.brand{gap:13px;color:var(--teal);letter-spacing:-.7px}
+.crest{width:52px;height:68px;object-fit:contain;flex-shrink:0}
+.brand small{color:#7b6e1c}
+.school{margin:23px 0 29px;line-height:1.55}
+.school>span{display:block;font-size:10px;color:var(--muted)}
+.school strong{display:block;font-size:14px;font-weight:700;color:var(--teal);margin:5px 0 7px}
+.school small{color:var(--muted);font-size:11px}
+nav a{color:#626e88}
+nav a.active{background:#edf0fc;color:var(--teal);box-shadow:inset 3px 0 0 var(--red)}
+nav a:hover{background:#f0f2fb}
+.support{background:#fbf9ed;border-color:#eee7bd}
+.support strong{color:#766619}
+.support p{color:#766f54}
+.avatar{background:#e9edfb;color:var(--teal)}
+header{border-top:3px solid var(--red)}
+.mode i{background:var(--gold)}
+.demo{border-left-color:var(--gold);color:#71704e}
+.heading h1 span{color:var(--red)}
+.hero{background:linear-gradient(115deg,#182c83,#243c96);color:white;border-bottom:4px solid var(--gold)}
+.pill{color:#f3df87}
+.hero p{color:#dbe1ff}
+.hero .button{background:white;color:var(--teal)}
+.hero .button:hover{background:#f7edc6}
+.button:hover{background:#101f66}
+.orbit{border-color:#ffffff35}
+.card-one{background:#fff9e5;color:#877317}
+.card-two{background:var(--red);color:white}
+.spark{color:#f0d96b}
+.art-caption{color:#e0e5ff}
+.blue{background:#e9edfc;color:#243c96}
+.orange{background:#fcebee;color:#b91e34}
+.green{background:#f6f1d9;color:#81701a}
+.stats>div{border-top:2px solid #d7def4}
+.stats>div:nth-child(2){border-top-color:#efd0d6}
+.stats>div:nth-child(3){border-top-color:#e8dfab}
+.course-cover{border-bottom:1px solid #00000006}
+.course-body p,.teacher,.activity p{color:#64708a}
+.mini-avatar{background:#edf0f8;color:#52638a}
+.badge{background:#f8f1d8;color:#77631a}
+textarea{border-color:#cbd2e5}
+textarea:focus,select:focus{outline:2px solid #8091d6;outline-offset:2px}
+footer strong{font-weight:600}
+@media(max-width:760px){.sidebar{padding-top:14px;border-top-width:4px}.crest{width:39px;height:50px}.brand{font-size:22px}.brand small{font-size:8px}.school{display:block;margin:12px 0 0}.school>span{font-size:9px}.school strong{font-size:12px;margin:2px 0}.school small{display:none}header{border-top-width:2px}.hero{border-bottom-width:3px}footer{font-size:10px;line-height:1.7}footer strong{display:block}}
+
+/* EVAL: una experiencia cercana para las estudiantes. */
+body{background:radial-gradient(ellipse at 85% 0%,#e9edff 0,transparent 45%),#f7f8fd}
+.sidebar{width:270px;padding:26px 22px;border-top:0;background:linear-gradient(180deg,#fff 75%,#f3f5ff)}
+.workspace{margin-left:270px}
+.brand{font-size:23px;letter-spacing:-.8px;padding:0 0 22px;border-bottom:1px solid var(--line);align-items:center}
+.crest{width:65px;height:83px;object-fit:contain;background:white;border-radius:9px;box-shadow:0 4px 15px #182c8310}
+.brand small{font-size:9px;letter-spacing:2px;color:#727d9a;margin-top:7px}
+.school strong{font-size:15px;line-height:1.5}
+nav a{padding:14px 15px;border-radius:12px;transition:background .2s,transform .2s}
+nav a:hover{transform:translateX(3px)}
+nav a.active{background:#182c83;color:#fff;box-shadow:0 6px 16px #182c8320}
+.support{border-radius:16px;background:linear-gradient(135deg,#fff8df,#fff4ed);padding:20px}
+header{background:#ffffffbf;backdrop-filter:blur(12px);border-top:0}
+main{padding-top:30px}
+.heading h1{font-size:31px;letter-spacing:-1px;line-height:1.25}
+.heading .eyebrow{color:#b42546}
+.hero{padding:0;min-height:330px;border-radius:24px;border:0;background:#182c83;box-shadow:0 15px 40px #182c8315;align-items:stretch}
+.hero>div:first-child{padding:35px 0 35px 34px;width:49%;position:relative;z-index:1}
+.hero h2{font-size:37px;letter-spacing:-1.2px;margin:18px 0 16px}
+.hero p{line-height:1.8;font-size:13px;margin-bottom:23px}
+.hero .pill{display:inline-block;background:#ffffff12;border:1px solid #ffffff20;padding:8px 11px;border-radius:20px;font-size:9px}
+.hero .button{border-radius:11px;padding:14px 19px;box-shadow:0 4px 14px #00000015}
+.hero-visual{width:51%;position:relative;overflow:hidden;min-height:330px}
+.hero-visual:after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,#182c83 0%,transparent 24%)}
+.hero-visual img{width:100%;height:100%;position:absolute;object-fit:cover;object-position:52% center}
+.visual-note{position:absolute;z-index:2;bottom:20px;right:20px;padding:10px 15px;border-radius:30px;background:#fffffff2;color:#182c83;font-size:11px;font-weight:650;box-shadow:0 5px 20px #182c8320}
+.stats{margin-top:27px;gap:18px}
+.stats>div{border-radius:17px;padding:21px;background:#ffffffd9;box-shadow:0 5px 16px #17244904}
+.stat-icon{border-radius:13px;padding:12px}
+.course{border-radius:20px;box-shadow:0 6px 22px #182c8307;transition:transform .2s,box-shadow .2s}
+.course:hover{transform:translateY(-4px);box-shadow:0 12px 28px #182c8312}
+.course-cover{height:145px;background-image:radial-gradient(circle at 80% 20%,#ffffff95,transparent 65%)}
+.course-cover>span{font-size:57px}
+.course-cover:after{width:135px;height:135px;right:-14px;top:25px;border-width:2px}
+.course-body{padding:23px}
+.course-link{padding-top:17px}
+.activity{border-radius:20px;box-shadow:0 6px 24px #182c8305;border-left:4px solid #7183d5}
+.activity:nth-child(2){border-left-color:#d95970}.activity:nth-child(3){border-left-color:#b3a32b}
+.activity h2{font-size:22px;letter-spacing:-.4px}
+.button{border-radius:10px}
+.section-title h2{font-size:22px}
+@media(prefers-reduced-motion:reduce){nav a,.course{transition:none}}
+@media(max-width:1100px) and (min-width:761px){.sidebar{width:230px;padding:25px 17px}.workspace{margin-left:230px}.brand{font-size:20px;gap:10px}.crest{width:52px;height:68px}.hero>div:first-child{padding:28px 0 28px 25px;width:51%}.hero h2{font-size:30px}.hero-visual{width:49%}.hero p br{display:none}.course-body{padding:17px}}
+@media(max-width:760px){.sidebar{width:100%;padding:17px 18px;background:white}.workspace{margin-left:0}.brand{border:0;padding:0;font-size:25px}.crest{width:53px;height:68px}.school{margin-top:10px}.school strong{font-size:12px}.hero{flex-direction:column;border-radius:21px}.hero>div:first-child{width:100%;padding:28px}.hero h2{font-size:35px}.hero-visual{width:100%;height:230px;min-height:230px}.hero-visual:after{background:linear-gradient(180deg,#182c83,transparent 30%)}.hero-visual img{object-position:center 42%}.hero p br{display:none}.heading h1{font-size:27px}.stats>div{padding:16px}.course-cover{height:140px}nav a:hover{transform:none}}
+

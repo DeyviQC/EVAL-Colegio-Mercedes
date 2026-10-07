@@ -4,8 +4,8 @@ context: |
   System: EVAL, for I.E. Nuestra Señora de las Mercedes.
   Product: Institutional hybrid educational web platform served primarily from the school network.
   Essential availability: Student functions must not require external Internet while local server, network, and power are available.
-  Repository state: No application project markers, dependencies, CI, or executable test commands are present.
-  Planned stack: Windows Server, Laravel/PHP, MySQL, React/TypeScript, and Tailwind CSS; this is a decision, not detected implementation.
+  Repository state: Local migration has Laravel and React project markers, dependency locks, executable MySQL tests and browser checks; the upstream planning snapshot remains under references/upstream.
+  Approved stack: Windows Server direction, Laravel/PHP, MySQL, React/TypeScript and Tailwind CSS; local implementation versions and unresolved production choices are documented in docs/academic-foundation.
   Access: Browser only over LAN/WLAN; a later remote component will synchronize selected functions.
   Delivery: OpenSpec SDD, interactive pace, ask on risk, and a 400 changed-line review threshold.
 
@@ -136,30 +136,41 @@ project:
 strict_tdd: false
 
 testing:
-  detected_at: 2026-10-06
-  detection_scope: Repository root and candidate project roots up to two directory levels below it.
-  reason: No in-scope application project roots or explicit workspace-wide test command were found.
-  planned_layers_are_not_detected_capabilities: true
+  detected_at: 2026-10-07
+  detection_scope: Local migrated backend and frontend, plus preserved prototype.
+  upstream_status_is_preserved_in_reference_checkout: true
   workspace_test_command: ""
-  projects: []
+  projects:
+    - path: backend
+      framework: Laravel 13 / PHPUnit 12
+      command: php artisan test
+      database: Real isolated MySQL 8.0.46 testing database
+    - path: frontend
+      framework: React / TypeScript / Playwright
+      build_command: npm run build
+      browser_command: npm run test:e2e
   layers:
-    unit: unavailable
-    integration: unavailable
-    e2e: unavailable
+    unit: available
+    integration: available
+    e2e: available
     load: unavailable
   coverage:
     available: false
     command: ""
   quality:
     linter:
-      available: false
-      command: ""
+      available: true
+      command: npm run lint (frontend)
     type_checker:
-      available: false
-      command: ""
+      available: true
+      command: npm run build (frontend; includes tsc -b)
     formatter:
-      available: false
-      command: ""
+      available: true
+      command: Laravel Pint and frontend Prettier
+  limitations:
+    - No institution-approved load thresholds or LAN/tablet acceptance evidence.
+    - No production IIS/Apache selection or remote synchronization implementation.
+    - Source planning gates and original tasks are not automatically marked complete.
 
 rules:
   proposal:
@@ -200,3 +211,4 @@ rules:
   archive:
     - Warn before merging destructive deltas.
     - Preserve archived changes as an immutable audit trail.
+

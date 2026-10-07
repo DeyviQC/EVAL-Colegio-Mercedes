@@ -1,1 +1,16 @@
-.atl/
+/config/local.php
+/storage/*
+!/storage/.gitkeep
+/dist/
+/references/
+/php/
+*.log
+**/.env*
+!**/.env.example
+**/vendor/
+**/node_modules/
+**/test-results/
+**/playwright-report/
+**/artifacts/
+/backend/public/client/
+/backend/database/database.sqlite

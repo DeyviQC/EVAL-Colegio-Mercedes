@@ -1,0 +1,23 @@
+EVAL - LARAVEL / MYSQL / REACT
+
+Extract the complete ZIP. PHP 8.3+, Composer, Node 24 and MySQL are required.
+
+1. In backend: composer install
+2. Copy backend/.env.example to backend/.env and configure MySQL migration credentials.
+3. In backend: php artisan key:generate
+4. In backend: php artisan migrate
+5. In backend: php artisan db:seed --class=AcademicDemoSeeder
+6. Configure a distinct runtime MySQL account using docs/academic-foundation/runtime-grants.sql.
+7. In frontend: npm ci, then npm run build
+8. Double-click Abrir EVAL.cmd, or start php artisan serve --host=127.0.0.1 --port=8081 in backend.
+
+Open http://127.0.0.1:8081/
+Use Abrir EVAL.cmd or scripts/start-laravel.ps1 from the VS Code terminal for the configured 10 MB upload limit and writable upload temp folder.
+Demo login: director@eval.test / Mercedes2026!
+Other accounts and setup details are documented in README.md.
+
+This ZIP does not include PHP, MySQL, Composer dependencies, node_modules or private environment credentials.
+The preserved plain-PHP prototype and its SQLite database remain included as a separate reference.
+Its launcher is scripts/start.ps1; it is not the new Laravel application.
+
+The Laravel version includes materials, library, grades, feedback, private files, notifications and account administration.
