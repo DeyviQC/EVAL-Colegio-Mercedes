@@ -1,7 +1,7 @@
 param(
     [ValidateSet('php', 'composer', 'test', 'db-smoke', 'migrate')][string]$Command = 'php',
     [ValidateSet('runtime', 'migration')][string]$Role = 'runtime',
-    [ValidateSet('U1', 'U2')][string]$Unit = 'U1',
+    [ValidateSet('U1', 'U2', 'U3')][string]$Unit = 'U1',
     [Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments
 )
 $ErrorActionPreference = 'Stop'
@@ -39,7 +39,7 @@ try {
         }
         $env:EVAL_DB_HOST = '127.0.0.1'
         $env:EVAL_DB_PORT = [string]$state.port
-        $env:EVAL_DB_NAME = if ($Unit -eq 'U1') { 'eval_u1_test' } else { 'eval_u2_test' }
+        $env:EVAL_DB_NAME = 'eval_'+$Unit.ToLowerInvariant()+'_test'
         $env:EVAL_UNIT = $Unit
         $env:EVAL_DB_USER = "eval_u1_$Role"
         $env:EVAL_DB_CA = Join-Path $root 'tls\ca.pem'
@@ -53,7 +53,7 @@ try {
     }
     if ($Command -eq 'php') { & $php -c (Join-Path $root 'php.ini') @Arguments }
     elseif ($Command -eq 'test') {
-        $configuration = if ($Unit -eq 'U1') { 'phpunit.xml' } else { 'phpunit.u2.xml' }
+        $configuration = if ($Unit -eq 'U1') { 'phpunit.xml' } else { 'phpunit.'+$Unit.ToLowerInvariant()+'.xml' }
         & $php -c (Join-Path $root 'php.ini') $target --configuration (Join-Path (Split-Path $PSScriptRoot) $configuration) @Arguments
     }
     else { & $php -c (Join-Path $root 'php.ini') $target @Arguments }

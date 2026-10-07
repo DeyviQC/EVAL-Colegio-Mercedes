@@ -1,4 +1,4 @@
-param([switch]$ConfigureRuntime, [ValidateSet('U1','U2')][string]$Unit = 'U1')
+param([switch]$ConfigureRuntime, [ValidateSet('U1','U2','U3')][string]$Unit = 'U1')
 $ErrorActionPreference = 'Stop'
 $evalRoot = [IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA 'Temp\opencode\eval-u1'))
 $evalStatePath = Join-Path $evalRoot 'database-state.json'
@@ -47,7 +47,7 @@ $evalArgs = @('--no-defaults', ('--datadir="'+$evalData+'"'), '--bind-address=12
     ('--ssl-cert="'+(Join-Path $evalRoot 'tls\server-cert.pem')+'"'),
     ('--ssl-key="'+(Join-Path $evalRoot 'tls\server-key.pem')+'"'))
 if ($ConfigureRuntime) {
-    $grants = if ($Unit -eq 'U1') { 'u1-runtime-grants.sql' } else { 'u2-runtime-grants.sql' }
+    $grants = $Unit.ToLowerInvariant()+'-runtime-grants.sql'
     $evalArgs += '--init-file="'+(Join-Path $PSScriptRoot $grants)+'"'
 }
 $evalProcess = Start-Process -FilePath $evalExecutable -ArgumentList $evalArgs -WindowStyle Hidden -PassThru
