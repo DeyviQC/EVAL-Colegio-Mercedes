@@ -93,7 +93,7 @@ return new class extends Migration {
 
             $table->primary('id');
             $table->foreign('grade_id')->references('id')->on('grades')->onDelete('restrict');
-            $table->index(['id', 'grade_id'], 'idx_sections_id_grade_id');
+            $table->unique(['id', 'grade_id'], 'uq_sections_id_grade_id');
         });
 
         DB::connection()->statement('

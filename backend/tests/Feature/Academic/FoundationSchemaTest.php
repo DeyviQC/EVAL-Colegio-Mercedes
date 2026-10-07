@@ -41,6 +41,8 @@ final class FoundationSchemaTest extends TestCase
 
     private function cleanDatabase(): void
     {
+        // Null self-references before deleting teaching_assignments (self-referencing FK)
+        DB::table('teaching_assignments')->update(['replaces_assignment_id' => null]);
         DB::table('teaching_assignments')->delete();
         DB::table('student_enrollments')->delete();
         DB::table('sections')->delete();
