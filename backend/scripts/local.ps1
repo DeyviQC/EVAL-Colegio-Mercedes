@@ -1,7 +1,7 @@
 param(
     [ValidateSet('php', 'composer', 'test', 'db-smoke', 'migrate')][string]$Command = 'php',
     [ValidateSet('runtime', 'migration')][string]$Role = 'runtime',
-    [ValidateSet('U1', 'U2', 'U3')][string]$Unit = 'U1',
+    [ValidateSet('U1', 'U2', 'U3', 'Auth')][string]$Unit = 'U1',
     [Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments
 )
 $ErrorActionPreference = 'Stop'
@@ -55,6 +55,11 @@ try {
     elseif ($Command -eq 'test') {
         $configuration = if ($Unit -eq 'U1') { 'phpunit.xml' } else { 'phpunit.'+$Unit.ToLowerInvariant()+'.xml' }
         & $php -c (Join-Path $root 'php.ini') $target --configuration (Join-Path (Split-Path $PSScriptRoot) $configuration) @Arguments
+    }
+    elseif ($Command -eq 'composer') {
+        Push-Location (Split-Path $PSScriptRoot)
+        try { & $php -c (Join-Path $root 'php.ini') $target @Arguments }
+        finally { Pop-Location }
     }
     else { & $php -c (Join-Path $root 'php.ini') $target @Arguments }
     $code = $LASTEXITCODE

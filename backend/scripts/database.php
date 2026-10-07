@@ -8,7 +8,7 @@ use Illuminate\Database\Capsule\Manager;
 use Illuminate\Events\Dispatcher;
 
 $unit = getenv('EVAL_UNIT') ?: 'U1';
-$expectedDatabase = match ($unit) { 'U1' => 'eval_u1_test', 'U2' => 'eval_u2_test', 'U3' => 'eval_u3_test', default => null };
+$expectedDatabase = match ($unit) { 'U1' => 'eval_u1_test', 'U2' => 'eval_u2_test', 'U3' => 'eval_u3_test', 'Auth' => 'eval_auth_test', default => null };
 if (getenv('EVAL_DB_HOST') !== '127.0.0.1' || $expectedDatabase === null || getenv('EVAL_DB_NAME') !== $expectedDatabase) {
     throw new RuntimeException('Only the selected isolated unit database is permitted.');
 }

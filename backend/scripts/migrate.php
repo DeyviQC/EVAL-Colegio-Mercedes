@@ -13,16 +13,17 @@ if (getenv('EVAL_DB_ROLE') !== 'migration') {
 $path = dirname(__DIR__).'/database/migrations';
 $file = $path.'/2026_10_07_000001_create_academic_write_guard.php';
 $files = [$file];
-if (in_array(getenv('EVAL_UNIT'), ['U2','U3'],true)) {
+if (in_array(getenv('EVAL_UNIT'), ['U2','U3','Auth'],true)) {
     foreach (['000002_create_academic_periods_and_catalog', '000003_create_student_enrollments', '000004_create_teaching_assignments'] as $name) {
         $files[] = $path.'/2026_10_07_'.$name.'.php';
     }
 }
-if (getenv('EVAL_UNIT')==='U3') { $files[]=$path.'/2026_10_07_000005_create_academic_lifecycle_events.php'; }
-$freshFlags=array_values(array_intersect($argv,['--fresh-u1','--fresh-u2','--fresh-u3']));
+if (in_array(getenv('EVAL_UNIT'),['U3','Auth'],true)) { $files[]=$path.'/2026_10_07_000005_create_academic_lifecycle_events.php'; }
+if (getenv('EVAL_UNIT')==='Auth') { $files[]=$path.'/2026_10_07_000006_create_local_authentication.php'; }
+$freshFlags=array_values(array_intersect($argv,['--fresh-u1','--fresh-u2','--fresh-u3','--fresh-auth']));
 if (count($freshFlags)>1) { throw new RuntimeException('Select exactly one disposable unit rebuild.'); }
 if ($freshFlags) {
-    $freshUnit=strtoupper(substr($freshFlags[0],8));
+    $freshUnit=$freshFlags[0]==='--fresh-auth'?'Auth':strtoupper(substr($freshFlags[0],8));
     $expectedName='eval_'.strtolower($freshUnit).'_test';
     if ((getenv('EVAL_UNIT') ?: 'U1') !== $freshUnit || getenv('EVAL_DB_NAME') !== $expectedName || getenv('EVAL_DB_HOST') !== '127.0.0.1') {
         throw new RuntimeException('Fresh rebuild requires the matching isolated disposable unit database.');
