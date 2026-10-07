@@ -48,8 +48,8 @@ final readonly class EffectiveInterval
         return [
             'effectiveFrom' => $dates->from,
             'effectiveUntil' => $dates->until,
-            'operationalStartKey' => (string) $this->start->ordinal,
-            'operationalEndKeyExclusive' => $this->end === null ? null : (string) $this->end->ordinal,
+            'operationalStartKey' => $this->start->toServerKey(),
+            'operationalEndKeyExclusive' => $this->end?->toServerKey(),
         ];
     }
 

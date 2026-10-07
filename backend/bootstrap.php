@@ -7,6 +7,7 @@ if (!$vendor || !is_file($vendor.'/autoload.php')) {
     throw new RuntimeException('Invoke the isolated local wrapper; external dependencies are missing.');
 }
 require_once $vendor.'/autoload.php';
+date_default_timezone_set('UTC');
 
 if (getenv('EVAL_DB_HOST')) {
     require_once __DIR__.'/scripts/database.php';

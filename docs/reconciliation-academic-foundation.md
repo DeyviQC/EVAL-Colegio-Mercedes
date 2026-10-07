@@ -72,3 +72,7 @@ Architecture/prototype acceptance and the pending gates remain prerequisites to 
 ## Explicit human acceptance (2026-10-07)
 
 The project reviewer accepted the synthetic four-role prototype for academic-foundation validation and approved the current base architecture while preserving unresolved questions. See docs/academic-foundation-gate-1.1-approval.md for reviewed revision, authority, consistency and exact limits. Gate 1.1 is now complete; earlier pending-acceptance statements are historical. No manual browser/accessibility pass is asserted. Gates 1.2–1.8 and U1 completion remain pending; U2 remains blocked and U3 is excluded.
+
+## Verified U1 superseding status (2026-10-07)
+
+The human explicitly approved permanent shared BIGINT identities, retention/minimum privileges, isolated MySQL startup and U1-only implementation, then removed the line limit. U1/2.1–2.3 are now verified: 43 tests, 150 assertions, MySQL 8.4.9. See docs/u1-verification.md for exact authority, RED/GREEN limits, commands, criterion mapping and rollback/permission evidence. Earlier UUID candidates and pending-U1 statements are historical. No new gate closure, U2/U3 work or remote authority is inferred.

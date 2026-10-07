@@ -51,6 +51,11 @@ final readonly class OperationalBoundary
 
     public function toServerKey(): string
     {
-        return sprintf('K%d', $this->ordinal);
+        return (string) $this->ordinal;
+    }
+
+    public function schoolLocalDate(): string
+    {
+        return $this->timestamp->setTimezone(new DateTimeZone('America/Lima'))->format('Y-m-d');
     }
 }

@@ -21,3 +21,7 @@ UUID v7 is not an approved product rule. Existing CHAR(36) identity storage is a
 Tasks 2.1–2.3 remain pending after reconciliation. Existing implementation is partial evidence, not full acceptance. See docs/reconciliation-academic-foundation.md for remaining coverage and verified checks. Historical test-first execution is not reconstructed from file presence.
 
 The latest human instruction authorizes reconciliation and establishes sequential team handoffs. It does not provide observed prototype acceptance or certify missing test results. No production migration, remote operation or push is inferred.
+
+## Verified U1 superseding status (2026-10-07)
+
+The human explicitly approved permanent shared BIGINT identities, retention/minimum privileges, isolated MySQL startup and U1-only implementation, then removed the line limit. U1/2.1–2.3 are now verified: 43 tests, 150 assertions, MySQL 8.4.9. See docs/u1-verification.md for exact authority, RED/GREEN limits, commands, criterion mapping and rollback/permission evidence. Earlier UUID candidates and pending-U1 statements are historical. No new gate closure, U2/U3 work or remote authority is inferred.

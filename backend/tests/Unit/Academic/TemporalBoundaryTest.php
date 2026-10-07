@@ -7,6 +7,7 @@ namespace Tests\Unit\Academic;
 use App\Domain\Academic\EffectiveInterval;
 use App\Domain\Academic\DeclaredDateRange;
 use App\Domain\Academic\OperationalBoundary;
+use App\Domain\Academic\TransferTiming;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
@@ -28,6 +29,66 @@ use PHPUnit\Framework\TestCase;
 final class TemporalBoundaryTest extends TestCase
 {
     private DateTimeZone $utc;
+
+    public function testServerKeysAreDecimalStrings(): void
+    {
+        $this->assertSame('9007199254740993', (new OperationalBoundary(9007199254740993,
+            new DateTimeImmutable('2026-03-01T00:00:00Z')))->toServerKey());
+    }
+
+    public function testImmediateBoundaryDateUsesInstitutionalTimezone(): void
+    {
+        $boundary = new OperationalBoundary(1, new DateTimeImmutable('2026-03-02T02:00:00Z'));
+        $this->assertSame('2026-03-01', $boundary->schoolLocalDate());
+        $this->assertSame('UTC', $boundary->timestamp->getTimezone()->getName());
+    }
+
+    public function testHistoricalOpenIntervalRetainsNullEnd(): void
+    {
+        $interval = new EffectiveInterval(new OperationalBoundary(1, new DateTimeImmutable('now')));
+        $this->assertNull($interval->historicalView(new DeclaredDateRange('2026-01-01'))['operationalEndKeyExclusive']);
+    }
+
+    public function testImmediateTimingRejectsUnsupportedModesBeforeAnyPersistence(): void
+    {
+        foreach (['scheduled', 'retroactive', 'corrective'] as $mode) {
+            try {
+                new TransferTiming($mode);
+                $this->fail('Unsupported timing accepted.');
+            } catch (InvalidArgumentException $error) {
+                $this->assertSame('Only server-confirmed immediate transfer timing is supported.', $error->getMessage());
+            }
+        }
+        $this->assertSame('immediate', (new TransferTiming())->mode);
+    }
+
+    public function testImmediateTransferCannotSupplyAnEffectiveDate(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        new TransferTiming('immediate', '2026-03-01');
+    }
+
+    public function testTransferCannotBecomeEffectiveWithoutSuccessfulServerConfirmation(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        (new TransferTiming())->confirmedEffectiveBoundary(null);
+    }
+
+    public function testTransferConfirmationPreservesTheCommittedServerBoundary(): void
+    {
+        $boundary = new OperationalBoundary(12, new DateTimeImmutable('2026-03-01T00:00:00Z'));
+        $this->assertSame($boundary, (new TransferTiming())->confirmedEffectiveBoundary($boundary));
+    }
+
+    public function testAssignmentEndOutsidePeriodAndPeriodWithoutEndAreRejected(): void
+    {
+        foreach ([new DeclaredDateRange('2026-01-01'), new DeclaredDateRange('2026-01-01', '2026-12-20')] as $period) {
+            try {
+                (new DeclaredDateRange('2026-03-01', '2026-12-21'))->assertAssignmentContainedIn($period);
+                $this->fail('Invalid containment accepted.');
+            } catch (InvalidArgumentException) { $this->addToAssertionCount(1); }
+        }
+    }
 
     public function testDeclaredDatesPermitSameDayAndRemainSeparateFromOrdinals(): void
     {

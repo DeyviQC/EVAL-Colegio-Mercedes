@@ -76,6 +76,9 @@ final class AcademicWriteGuard
             throw new RuntimeException('Academic write guard row does not exist.');
         }
 
+        if ((int) $row->last_ordinal >= PHP_INT_MAX) {
+            throw new RuntimeException('Operational ordinal range exhausted.');
+        }
         $nextOrdinal = ((int) $row->last_ordinal) + 1;
 
         $this->connection->table('academic_write_guard')

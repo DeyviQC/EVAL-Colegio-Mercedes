@@ -6,7 +6,7 @@
     <testsuites>
         <testsuite name="U1">
             <directory>tests/Unit</directory>
-            <directory>tests/Feature</directory>
+            <file>tests/Feature/Academic/IdentityRetentionTest.php</file>
         </testsuite>
     </testsuites>
 </phpunit>

@@ -11,7 +11,7 @@ if (getenv('EVAL_DB_HOST') !== '127.0.0.1' || getenv('EVAL_DB_NAME') !== 'eval_u
     throw new RuntimeException('Only the disposable U1 database is permitted.');
 }
 $database = new Manager;
-$database->addConnection([
+$config = [
     'driver' => 'mysql',
     'host' => getenv('EVAL_DB_HOST'),
     'port' => getenv('EVAL_DB_PORT'),
@@ -26,7 +26,11 @@ $database->addConnection([
         PDO::MYSQL_ATTR_SSL_CA => getenv('EVAL_DB_CA'),
         PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => true,
     ],
-]);
+];
+$database->addConnection($config);
+if (getenv('EVAL_U1_MIGRATION_PASSWORD')) {
+    $database->addConnection(array_replace($config, ['username' => 'eval_u1_migration', 'password' => getenv('EVAL_U1_MIGRATION_PASSWORD')]), 'migration');
+}
 $database->setEventDispatcher(new Dispatcher($database->getContainer()));
 $database->setAsGlobal();
 $database->bootEloquent();

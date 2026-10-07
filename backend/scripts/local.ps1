@@ -7,7 +7,7 @@ $ErrorActionPreference = 'Stop'
 $root = Join-Path $env:LOCALAPPDATA 'Temp\opencode\eval-u1'
 if (!(Test-Path -LiteralPath $root)) { throw 'Isolated runtime missing' }
 $php = Join-Path $root 'php\php.exe'
-$names = @('COMPOSER_HOME','COMPOSER_CACHE_DIR','COMPOSER_VENDOR_DIR','COMPOSER_AUTH','COMPOSER','GIT_CONFIG_GLOBAL','GIT_CONFIG_NOSYSTEM','GIT_TERMINAL_PROMPT','EVAL_VENDOR_DIR','EVAL_DB_HOST','EVAL_DB_PORT','EVAL_DB_NAME','EVAL_DB_USER','EVAL_DB_PASSWORD','EVAL_DB_CA','EVAL_DB_ROLE')
+$names = @('COMPOSER_HOME','COMPOSER_CACHE_DIR','COMPOSER_VENDOR_DIR','COMPOSER_AUTH','COMPOSER','GIT_CONFIG_GLOBAL','GIT_CONFIG_NOSYSTEM','GIT_TERMINAL_PROMPT','EVAL_VENDOR_DIR','EVAL_DB_HOST','EVAL_DB_PORT','EVAL_DB_NAME','EVAL_DB_USER','EVAL_DB_PASSWORD','EVAL_DB_CA','EVAL_DB_ROLE','EVAL_U1_MIGRATION_PASSWORD')
 $saved = @{}
 foreach ($name in $names) { $saved[$name] = [Environment]::GetEnvironmentVariable($name, 'Process') }
 try {
@@ -20,6 +20,9 @@ try {
     $env:GIT_CONFIG_NOSYSTEM = '1'
     $env:GIT_TERMINAL_PROMPT = '0'
     $env:EVAL_VENDOR_DIR = $env:COMPOSER_VENDOR_DIR
+    if ($Command -eq 'test' -and $Arguments -and @($Arguments | Where-Object { $_ -notmatch '^(--testdox|--filter=.*)$' }).Count) {
+        throw 'U1 test wrapper accepts only --testdox and --filter=...; suite override denied.'
+    }
     if ($Command -in @('test','db-smoke','migrate')) {
         $state = Get-Content -LiteralPath (Join-Path $root 'database-state.json') -Raw | ConvertFrom-Json
         $process = Get-Process -Id $state.pid -ErrorAction Stop
@@ -28,6 +31,11 @@ try {
         $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
         try { $env:EVAL_DB_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer) }
         finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer) }
+        if ($Command -eq 'test') {
+            $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR((ConvertTo-SecureString $state.migration))
+            try { $env:EVAL_U1_MIGRATION_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer) }
+            finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer) }
+        }
         $env:EVAL_DB_HOST = '127.0.0.1'
         $env:EVAL_DB_PORT = [string]$state.port
         $env:EVAL_DB_NAME = 'eval_u1_test'

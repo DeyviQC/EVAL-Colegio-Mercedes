@@ -1,213 +1,192 @@
 <?php
 
 declare(strict_types=1);
-
 namespace Tests\Feature\Academic;
 
 use App\Domain\Academic\AcademicWriteGuard;
+use App\Domain\Academic\TransferTiming;
 use Illuminate\Database\Capsule\Manager as DB;
 use Illuminate\Database\QueryException;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
-/**
- * Task 2.3 Feature Test: Identity retention and persistent singleton write guard.
- *
- * Verifies:
- * - Exactly one pre-created academic write guard row exists with id = 1.
- * - CHECK constraint (id = 1) prevents creating guard rows with other IDs.
- * - Primary key prevents inserting duplicate guard rows.
- * - Monotonic ordinal allocation under transaction and rollback safety.
- * - Retained actor identity after account deactivation and credential removal.
- * - Durable non-reusable IDs (primary key rejects ID collision).
- * - Referential integrity constraints (RESTRICT delete behavior).
- */
 final class IdentityRetentionTest extends TestCase
 {
     private AcademicWriteGuard $guard;
 
     protected function setUp(): void
     {
-        parent::setUp();
+        $this->assertSame('eval_u1_test', DB::connection()->getDatabaseName());
+        $this->assertSame('mysql', DB::connection()->getDriverName());
+        DB::connection()->beginTransaction();
         $this->guard = new AcademicWriteGuard(DB::connection());
     }
 
-    public function testExactlyOnePreCreatedGuardRowExists(): void
+    protected function tearDown(): void
+    {
+        while (DB::connection()->transactionLevel() > 0) { DB::connection()->rollBack(); }
+    }
+
+    private function identity(): int
+    {
+        return DB::table('retained_identities')->insertGetId(['credential_status' => 'active']);
+    }
+
+    private function denied(callable $operation, array $codes): void
+    {
+        try { $operation(); $this->fail('Operation unexpectedly permitted.'); }
+        catch (QueryException $error) { $this->assertContains((int) $error->errorInfo[1], $codes); }
+    }
+
+    public function testSharedIdentityUsesUnsignedBigint(): void
+    {
+        $column = DB::connection()->selectOne("SELECT COLUMN_TYPE AS type FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='retained_identities' AND COLUMN_NAME='id'");
+        $this->assertSame('bigint unsigned', $column->type);
+        $id = $this->identity();
+        $this->assertGreaterThan(0, $id);
+        // Actor, teacher and student references resolve one retained identity, not exclusive role IDs.
+        foreach (['actor', 'student', 'teacher'] as $context) {
+            DB::table('academic_identity_references')->insert(['retained_identity_id' => $id, 'reference_context' => $context]);
+        }
+        $this->assertSame(3, DB::table('academic_identity_references')->where('retained_identity_id', $id)->count());
+    }
+
+    public function testOnlyU1TablesAndMigrationAreInstalled(): void
+    {
+        $tables = DB::connection()->select('SHOW TABLES');
+        $names = array_map(fn ($row) => array_values((array) $row)[0], $tables);
+        sort($names);
+        $this->assertSame(['academic_identity_references', 'academic_write_guard', 'migrations', 'retained_identities'], $names);
+        $this->assertSame(['2026_10_07_000001_create_academic_write_guard'], DB::table('migrations')->pluck('migration')->all());
+    }
+
+    public function testPersistentGuardRejectsOtherIdsAndDuplicates(): void
     {
         $this->guard->ensureGuardExists();
-
-        $rows = DB::table('academic_write_guard')->get();
-        $this->assertCount(1, $rows);
-        $this->assertSame(1, (int) $rows[0]->id);
+        $this->assertSame(1, DB::table('academic_write_guard')->count());
+        $this->denied(fn () => DB::connection('migration')->table('academic_write_guard')->insert(['id' => 2]), [3819]);
+        $this->denied(fn () => DB::connection('migration')->table('academic_write_guard')->insert(['id' => 1]), [1062]);
     }
 
-    public function testGuardRejectsRowsWithIdOtherThanOneViaCheckConstraint(): void
+    public function testUnreferencedIdentityIsAlsoPermanentAndAllocatedIdsIncrease(): void
     {
-        $this->expectException(QueryException::class);
-
-        // Attempting to insert a second guard row with id = 2 must fail CHECK (id = 1)
-        DB::table('academic_write_guard')->insert([
-            'id' => 2,
-            'last_ordinal' => 10,
-        ]);
+        $first = $this->identity();
+        $this->denied(fn () => DB::table('retained_identities')->where('id', $first)->delete(), [1142]);
+        $second = $this->identity();
+        $this->assertGreaterThan($first, $second);
+        $this->assertTrue(DB::table('retained_identities')->where('id', $first)->exists());
     }
 
-    public function testGuardRejectsDuplicateIdOneViaPrimaryKey(): void
+    public function testIdentityReferenceCannotBeReboundByRuntime(): void
     {
-        $this->expectException(QueryException::class);
-
-        // Attempting to insert duplicate id = 1 must fail Primary Key
-        DB::table('academic_write_guard')->insert([
-            'id' => 1,
-            'last_ordinal' => 50,
-        ]);
+        $id = $this->identity();
+        DB::table('academic_identity_references')->insert(['retained_identity_id' => $id, 'reference_context' => 'actor']);
+        $this->denied(fn () => DB::table('academic_identity_references')->where('retained_identity_id', $id)->update(['retained_identity_id' => PHP_INT_MAX]), [1142]);
+        $this->assertSame($id, (int) DB::table('academic_identity_references')->where('retained_identity_id', $id)->value('retained_identity_id'));
     }
 
-    public function testMonotonicOrdinalAllocationAndRollbackSafety(): void
+    public function testGuardCommitAndRollback(): void
     {
-        $initialOrdinal = $this->guard->getCurrentOrdinal();
+        $before = $this->guard->getCurrentOrdinal();
+        $boundary = $this->guard->allocateNextBoundary();
+        $this->assertSame($before + 1, $boundary->ordinal);
+        $this->assertSame('UTC', $boundary->timestamp->getTimezone()->getName());
+        DB::connection()->commit();
+        $this->assertSame($before + 1, $this->guard->getCurrentOrdinal());
+        DB::connection()->beginTransaction();
+        $this->guard->allocateNextBoundary();
+        DB::connection()->rollBack();
+        $this->assertSame($before + 1, $this->guard->getCurrentOrdinal());
+    }
 
-        // Transaction 1: allocate boundary
-        DB::connection()->transaction(function () use (&$boundary1) {
-            $boundary1 = $this->guard->allocateNextBoundary();
-        });
+    public function testOrdinalExhaustionDoesNotMutateGuard(): void
+    {
+        DB::table('academic_write_guard')->where('id', 1)->update(['last_ordinal' => PHP_INT_MAX]);
+        try { $this->guard->allocateNextBoundary(); $this->fail('Exhausted ordinal allocated.'); }
+        catch (RuntimeException $error) { $this->assertSame('Operational ordinal range exhausted.', $error->getMessage()); }
+        $this->assertSame(PHP_INT_MAX, $this->guard->getCurrentOrdinal());
+    }
 
-        $this->assertSame($initialOrdinal + 1, $boundary1->ordinal);
-        $this->assertSame('UTC', $boundary1->timestamp->getTimezone()->getName());
-        $this->assertSame($boundary1->ordinal, $this->guard->getCurrentOrdinal());
+    public function testGuardAdmitsLastOrdinalAndRejectsOutOfRangeDatabaseValues(): void
+    {
+        DB::table('academic_write_guard')->where('id', 1)->update(['last_ordinal' => PHP_INT_MAX - 1]);
+        $this->assertSame((string) PHP_INT_MAX, $this->guard->allocateNextBoundary()->toServerKey());
+        $this->denied(fn () => DB::table('academic_write_guard')->where('id', 1)->update(['last_ordinal' => '9223372036854775808']), [3819]);
+        $this->assertSame(PHP_INT_MAX, $this->guard->getCurrentOrdinal());
+    }
 
-        // Transaction 2: allocate another boundary
-        DB::connection()->transaction(function () use (&$boundary2) {
-            $boundary2 = $this->guard->allocateNextBoundary();
-        });
+    public function testGuardCannotRegressWithinTransaction(): void
+    {
+        $boundary = $this->guard->allocateNextBoundary();
+        $this->denied(fn () => DB::table('academic_write_guard')->where('id', 1)->update(['last_ordinal' => $boundary->ordinal - 1]), [1644]);
+        $this->assertSame($boundary->ordinal, $this->guard->getCurrentOrdinal());
+    }
 
-        $this->assertSame($boundary1->ordinal + 1, $boundary2->ordinal);
-        $this->assertTrue($boundary2->compareTo($boundary1) > 0);
+    public function testMigrationPrivilegesCannotDeleteOrRewritePermanentIdentityEither(): void
+    {
+        $id = $this->identity();
+        // A committed retained ID must survive even a privileged accidental SQL write.
+        DB::connection()->commit();
+        $this->denied(fn () => DB::connection('migration')->table('retained_identities')->where('id', $id)->delete(), [1644]);
+        $this->denied(fn () => DB::connection('migration')->table('retained_identities')->where('id', $id)->update(['id' => $id + 1]), [1644]);
+        $this->denied(fn () => DB::connection('migration')->table('retained_identities')->insert(['id' => $id, 'credential_status' => 'active']), [1644]);
+        $this->assertSame(1, DB::table('retained_identities')->where('id', $id)->count());
+    }
 
-        // Transaction 3: failed transaction rolls back ordinal allocation
-        $ordinalBeforeFailure = $this->guard->getCurrentOrdinal();
+    public function testCredentialStatusConstraintRejectsUnknownStatus(): void
+    {
+        $this->denied(fn () => DB::table('retained_identities')->insert(['credential_status' => 'invalid']), [3819]);
+    }
 
-        try {
-            DB::connection()->transaction(function () {
-                $this->guard->allocateNextBoundary();
-                throw new \RuntimeException('Simulated failure during write');
-            });
-        } catch (\RuntimeException) {
-            // Expected
+    public function testUnsupportedTimingDoesNotChangePersistedContext(): void
+    {
+        $id = $this->identity();
+        $before = $this->guard->getCurrentOrdinal();
+        foreach ([['scheduled', null], ['retroactive', null], ['corrective', null], ['immediate', '2026-03-01']] as [$mode, $date]) {
+            try { new TransferTiming($mode, $date); $this->fail('Unsupported timing accepted.'); }
+            catch (\InvalidArgumentException) { $this->addToAssertionCount(1); }
+            $this->assertSame($before, $this->guard->getCurrentOrdinal());
+            $this->assertSame('active', DB::table('retained_identities')->where('id', $id)->value('credential_status'));
         }
-
-        $this->assertSame(
-            $ordinalBeforeFailure,
-            $this->guard->getCurrentOrdinal(),
-            'Ordinal allocation must roll back when transaction fails.'
-        );
     }
 
-    public function testRetainedActorIdentityPersistsAfterDeactivationAndCredentialRemoval(): void
+    public function testCredentialChangesKeepPermanentIdentityAndPreventReuse(): void
     {
-        $actorId = '01923456-789a-7b1c-8d2e-3f4a5b6c7d8e'; // UUID v7 format
-
-        // Clean up test actor if exists
-        DB::table('retained_identities')->where('id', $actorId)->delete();
-
-        // 1. Create active actor identity
-        DB::table('retained_identities')->insert([
-            'id' => $actorId,
-            'identity_type' => 'actor',
-            'credential_status' => 'active',
-            'deactivated_at' => null,
-        ]);
-
-        $actor = DB::table('retained_identities')->where('id', $actorId)->first();
-        $this->assertNotNull($actor);
-        $this->assertSame('active', $actor->credential_status);
-        $this->assertNull($actor->deactivated_at);
-
-        // 2. Deactivate account
-        $now = date('Y-m-d H:i:s');
-        DB::table('retained_identities')->where('id', $actorId)->update([
-            'credential_status' => 'deactivated',
-            'deactivated_at' => $now,
-        ]);
-
-        $deactivated = DB::table('retained_identities')->where('id', $actorId)->first();
-        $this->assertNotNull($deactivated, 'Identity record must persist after account deactivation');
-        $this->assertSame('deactivated', $deactivated->credential_status);
-        $this->assertNotNull($deactivated->deactivated_at);
-
-        // 3. Remove credentials completely
-        DB::table('retained_identities')->where('id', $actorId)->update([
-            'credential_status' => 'removed',
-        ]);
-
-        $removed = DB::table('retained_identities')->where('id', $actorId)->first();
-        $this->assertNotNull($removed, 'Identity record must persist even after credential removal');
-        $this->assertSame('removed', $removed->credential_status);
-        $this->assertSame($actorId, $removed->id, 'Identity ID must remain identical and durable');
-    }
-
-    public function testIdentifierReuseIsRejected(): void
-    {
-        $existingId = '01923456-0000-7000-8000-000000000001';
-
-        // Ensure record exists
-        DB::table('retained_identities')->where('id', $existingId)->delete();
-        DB::table('retained_identities')->insert([
-            'id' => $existingId,
-            'identity_type' => 'student',
-            'credential_status' => 'deactivated',
-        ]);
-
-        // Attempting to reuse the same ID for a new teacher/student must fail
-        $this->expectException(QueryException::class);
-        DB::table('retained_identities')->insert([
-            'id' => $existingId,
-            'identity_type' => 'teacher',
-            'credential_status' => 'active',
-        ]);
-    }
-
-    public function testIdentityTypeCheckConstraint(): void
-    {
-        $this->expectException(QueryException::class);
-
-        // An invalid identity_type must be rejected by MySQL CHECK constraint
-        DB::table('retained_identities')->insert([
-            'id' => '01923456-9999-7000-8000-000000000002',
-            'identity_type' => 'invalid_type',
-            'credential_status' => 'active',
-        ]);
-    }
-
-    public function testRestrictDeleteOnReferencedRetainedIdentity(): void
-    {
-        $actorId = '01923456-1111-7000-8000-000000000003';
-
-        // Clean up references and actor
-        DB::table('academic_identity_references')->where('retained_identity_id', $actorId)->delete();
-        DB::table('retained_identities')->where('id', $actorId)->delete();
-
-        // 1. Create retained identity
-        DB::table('retained_identities')->insert([
-            'id' => $actorId,
-            'identity_type' => 'actor',
-            'credential_status' => 'active',
-        ]);
-
-        // 2. Insert a referencing child row
-        DB::table('academic_identity_references')->insert([
-            'retained_identity_id' => $actorId,
-            'reference_context' => 'test_audit_trail',
-        ]);
-
-        // 3. Attempting to delete the referenced retained identity must fail with FK violation (RESTRICT)
-        try {
-            DB::table('retained_identities')->where('id', $actorId)->delete();
-            $this->fail('Expected QueryException for foreign key restrict constraint');
-        } catch (QueryException $e) {
-            $this->assertStringContainsString('foreign key constraint fails', $e->getMessage());
-        } finally {
-            DB::table('academic_identity_references')->where('retained_identity_id', $actorId)->delete();
-            DB::table('retained_identities')->where('id', $actorId)->delete();
+        $id = $this->identity();
+        foreach (['deactivated', 'removed'] as $status) {
+            DB::table('retained_identities')->where('id', $id)->update(['credential_status' => $status]);
+            $this->assertSame($id, (int) DB::table('retained_identities')->where('id', $id)->value('id'));
+            $this->assertSame($status, DB::table('retained_identities')->where('id', $id)->value('credential_status'));
         }
+        $this->denied(fn () => DB::table('retained_identities')->where('id', $id)->delete(), [1142, 1644]);
+        $this->denied(fn () => DB::table('retained_identities')->where('id', $id)->update(['id' => $id + 1]), [1143, 1644]);
+        $this->denied(fn () => DB::table('retained_identities')->insert(['id' => $id, 'credential_status' => 'active']), [1143, 1644]);
+        $this->assertSame(1, DB::table('retained_identities')->where('id', $id)->count());
+    }
+
+    public function testRestrictiveIdentityForeignKeyRejectsMissingParent(): void
+    {
+        $this->denied(fn () => DB::table('academic_identity_references')->insert(['retained_identity_id' => PHP_INT_MAX, 'reference_context' => 'actor']), [1452]);
+        $constraints = DB::connection()->select("SELECT DELETE_RULE AS rule FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA=DATABASE() AND TABLE_NAME='academic_identity_references'");
+        $this->assertCount(1, $constraints);
+        $this->assertSame('RESTRICT', $constraints[0]->rule);
+    }
+
+    public function testRuntimeHasNoDdlDeleteOrIdMutationPrivileges(): void
+    {
+        $grants = implode('\n', array_map(fn ($row) => implode('', (array) $row), DB::connection()->select('SHOW GRANTS')));
+        $this->assertStringNotContainsString('ALL PRIVILEGES', $grants);
+        $this->assertDoesNotMatchRegularExpression('/GRANT .*\b(DELETE|CREATE|DROP|ALTER|TRIGGER|EXECUTE)\b/', $grants);
+        $this->denied(fn () => DB::connection()->statement('CREATE TABLE eval_u1_permission_probe (id INT)'), [1142]);
+        $this->denied(fn () => DB::table('academic_write_guard')->where('id', 999)->delete(), [1142]);
+    }
+
+    public function testIdentityInsertAndReferenceRollBackTogether(): void
+    {
+        $id = $this->identity();
+        DB::table('academic_identity_references')->insert(['retained_identity_id' => $id, 'reference_context' => 'actor']);
+        DB::connection()->rollBack();
+        $this->assertFalse(DB::table('retained_identities')->where('id', $id)->exists());
+        $this->assertFalse(DB::table('academic_identity_references')->where('retained_identity_id', $id)->exists());
     }
 }
