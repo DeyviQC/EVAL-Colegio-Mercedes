@@ -41,3 +41,7 @@ All default delivery restrictions remain in force outside this exception. It doe
 - Run only repository-supported checks and report unavailable checks honestly.
 - Keep changes focused, reviewable, and free of secrets.
 - Do not perform remote operations without explicit authorization for the destination, operation, and credentials or session.
+
+### Sequential team handoff (human instruction, 2026-10-07)
+
+Finish and verify one bounded unit, then commit it before the next contributor starts from that exact predecessor commit. Do not develop application units concurrently. Record verification and remaining gates in each handoff. The human authorized local reconciliation; this supersedes the earlier no-commit restriction for finished reconciliation handoffs only. It does not certify prototype acceptance, resolve pending product decisions, authorize remote operations, or broaden the U1 exception into U2/U3 execution.

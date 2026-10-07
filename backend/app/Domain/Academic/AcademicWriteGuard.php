@@ -63,6 +63,10 @@ final class AcademicWriteGuard
      */
     public function allocateNextBoundary(): OperationalBoundary
     {
+        if ($this->connection->transactionLevel() < 1) {
+            throw new RuntimeException('Boundary allocation requires an active transaction.');
+        }
+
         $row = $this->connection->table('academic_write_guard')
             ->where('id', self::GUARD_ID)
             ->lockForUpdate()

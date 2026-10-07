@@ -1,39 +1,23 @@
 # U1 Exception Record
 
-| Field      | Value                                               |
-|------------|-----------------------------------------------------|
-| Scope      | academic-foundation tasks 2.1, 2.2, 2.3 only        |
-| Authority  | Human-approved narrow exception (see AGENTS.md)      |
-| Recorded   | 2026-10-07                                           |
+## Authority and limits
 
-## What this exception authorizes
+The human-approved exception in AGENTS.md authorizes isolated local setup and academic-foundation tasks 2.1–2.3 before integral architecture and prototype acceptance. Setup is a separate prerequisite, not task 2.1 or SDD apply. It does not complete any gate.
 
-1. **Task 2.1** — Isolated local environment setup (PHP, Composer, MySQL test instance; no global installs).
-2. **Task 2.2** — OperationalBoundary and EffectiveInterval value objects with unit tests (TDD, no DB).
-3. **Task 2.3** — Entity classes (AcademicPeriod, Grade, Section, Subject, Area), AcademicWriteGuard, MySQL migrations, and integration tests against real `eval_u1_test` database.
+- 2.1: temporal boundary tests against the complete task contract.
+- 2.2: OperationalBoundary and EffectiveInterval, including the task's historical/date/key requirements.
+- 2.3: identity-retention tests and persistent singleton guard prerequisites after identity-mapping approval.
 
-## What this exception does NOT authorize
+It does not authorize U2/U3 implementation, account management, lifecycle ledger, retry/locking protocol design, unresolved product choices, or production/remote operations. The setup worker may not create domain tests/objects, identity schema or guard migrations; these belong to the separately authorized U1 work.
 
-- Completing gate 1.1 or any other planning gate.
-- U2 tasks (repository layer, domain services, seed/fixture utilities).
-- U3 tasks (migration apply to dev DB, API endpoints, write guard retry/backoff).
-- User management, identity schema beyond UUID v7 entity IDs, or auth logic.
-- Lifecycle ledger, locking/retry protocols, or chain strategy.
-- Commits, pushes, PRs, global installations, admin operations, production access, or remote execution.
-- Scope expansion or size exceptions.
+## Normative reference
 
-## Approved design decisions applied
+Commit 38e90ff supplies the current six specs and design. Dates and ordinals remain separate; operational intervals are half-open. The guard is a pre-created persistent row locked with FOR UPDATE inside a transaction, not an INSERT/DELETE mutex. Declared-date and planned-boundary mappings remain unresolved.
 
-| Decision | Detail |
-|----------|--------|
-| OperationalBoundary | Ordinal (int > 0) + UTC timestamp as evidence; order exclusively by ordinal |
-| EffectiveInterval | `[start, end)` half-open; start required, end nullable |
-| Declared dates | Remain separate fields; not converted to ordinals |
-| Temporal mappings | Not resolved in U1 |
-| Identity | Durable, UUID v7, non-reusable IDs, RESTRICT FK |
-| AcademicWriteGuard | Singleton row with CHECK(id=1); INSERT=acquire, DELETE=release |
-| TDD approach | Tests written before implementation; MySQL real (non-production) for integration |
+UUID v7 is not an approved product rule. Existing CHAR(36) identity storage is a candidate technical mapping requiring gate 1.6 evidence. Academic aggregate BIGINT remains the design direction. No entity classes beyond the actual U1 files are certified by this record.
 
-## Completion criteria
+## Evidence and progress
 
-Tasks are NOT auto-marked complete. Human reviews test results, code, and schema before marking progress.
+Tasks 2.1–2.3 remain pending after reconciliation. Existing implementation is partial evidence, not full acceptance. See docs/reconciliation-academic-foundation.md for remaining coverage and verified checks. Historical test-first execution is not reconstructed from file presence.
+
+The latest human instruction authorizes reconciliation and establishes sequential team handoffs. It does not provide observed prototype acceptance or certify missing test results. No production migration, remote operation or push is inferred.

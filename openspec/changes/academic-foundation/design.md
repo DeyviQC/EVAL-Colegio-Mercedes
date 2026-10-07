@@ -6,7 +6,7 @@ EVAL will implement the academic foundation as a local, server-authoritative Lar
 
 The model uses explicit effective intervals for enrollment and teaching-assignment scope. Student transfers are immediate, successful server-confirmed operations only; scheduled, retroactive, and corrective transfers are rejected. Transfers and supported teacher replacements are atomic, additive operations: the prior record is ended and a new record is inserted. Enrollment requires a period identity without additional declared-date containment; assignment containment remains required. Closed periods prohibit new academic work but permit valid, role-authorized residual closure and historical reads without cascading child state changes. The minimum activity/submission boundary stores the original teaching-assignment route and the enrollment under which a submission was accepted; it intentionally does not design the deferred activity or submission lifecycle.
 
-This document describes planned implementation paths only. The repository currently has placeholder `backend/`, `frontend/`, and `database/` directories, with no Laravel or React scaffold, dependencies, schema, CI, or executable test tooling.
+This document preserves the normative planned architecture from 38e90ff. The local branch now contains an isolated Illuminate/PHPUnit U1 harness and unaccepted U2 candidate schema; it has no approved complete Laravel/React application. Current verification and remaining gates are recorded in docs/reconciliation-academic-foundation.md. Candidate code is not evidence of architecture or prototype acceptance.
 
 ## Design Boundaries
 

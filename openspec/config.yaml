@@ -4,7 +4,7 @@ context: |
   System: EVAL, for I.E. Nuestra Señora de las Mercedes.
   Product: Institutional hybrid educational web platform served primarily from the school network.
   Essential availability: Student functions must not require external Internet while local server, network, and power are available.
-  Repository state: No application project markers, dependencies, CI, or executable test commands are present.
+  Repository state: Isolated U1 dependencies and PHPUnit harness plus unaccepted U2 candidate schema exist; no approved full application or CI. See docs/reconciliation-academic-foundation.md for current verified checks.
   Planned stack: Windows Server, Laravel/PHP, MySQL, React/TypeScript, and Tailwind CSS; this is a decision, not detected implementation.
   Access: Browser only over LAN/WLAN; a later remote component will synchronize selected functions.
   Delivery: OpenSpec SDD, interactive pace, ask on risk, and a 400 changed-line review threshold.
@@ -200,3 +200,6 @@ rules:
   archive:
     - Warn before merging destructive deltas.
     - Preserve archived changes as an immutable audit trail.
+
+# The testing detection below is the historical planning snapshot, not current verification.
+# Reconciliation records isolated unit checks separately; other gates remain pending.
