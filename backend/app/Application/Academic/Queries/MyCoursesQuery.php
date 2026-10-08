@@ -20,7 +20,10 @@ final class MyCoursesQuery {
                 if($teacher)$query->where('a.teacher_id',$actor->identityId);
                 if($student)$query->orWhere(function($scope)use($actor){$scope->where('a.state','active')->where('p.state','active')
                     ->whereExists(function($enrollment)use($actor){$enrollment->selectRaw('1')->from('student_enrollments as e')->where('e.student_id',$actor->identityId)->where('e.state','active')
-                        ->whereColumn('e.academic_period_id','a.academic_period_id')->whereColumn('e.grade_id','a.grade_id')->whereColumn('e.section_id','a.section_id');});});
+                        ->whereColumn('e.academic_period_id','a.academic_period_id')->whereColumn('e.grade_id','a.grade_id')->whereColumn('e.section_id','a.section_id');});
+                    $scope->orWhereExists(function($history)use($actor){$history->selectRaw('1')->from('course_materials as m')->join('student_enrollments as h',function($join)use($actor){$join->where('h.student_id','=',$actor->identityId);})
+                        ->whereColumn('m.assignment_id','a.id')->whereColumn('h.academic_period_id','a.academic_period_id')->whereColumn('h.grade_id','a.grade_id')->whereColumn('h.section_id','a.section_id')
+                        ->whereColumn('m.publication_key','>=','h.operational_start_key')->where(function($end){$end->whereNull('h.operational_end_key')->orWhereColumn('m.publication_key','<','h.operational_end_key');});});});
             });
     }
     private function fields():array{return ['a.id','a.teacher_id','a.state','p.name as period_name','p.state as period_state','i.name as subject','i.kind','g.name as grade','s.name as section'];}

@@ -20,3 +20,4 @@ GRANT INSERT(teaching_assignment_id) ON eval_u11_test.activity_references TO 'ev
 GRANT INSERT(student_id,activity_id,teaching_assignment_id,accepted_under_enrollment_id,accepted_at,acceptance_operation_key) ON eval_u11_test.submission_references TO 'eval_u1_runtime'@'127.0.0.1';
 
 GRANT UPDATE(teaching_assignment_id) ON eval_u11_test.activity_references TO 'eval_u1_runtime'@'127.0.0.1';
+GRANT INSERT(assignment_id,author_id,title,description,filename,storage_key,mime,bytes,sha256,publication_key,published_at) ON eval_u11_test.course_materials TO 'eval_u1_runtime'@'127.0.0.1';

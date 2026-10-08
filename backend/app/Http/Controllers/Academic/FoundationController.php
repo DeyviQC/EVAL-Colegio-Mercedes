@@ -119,8 +119,8 @@ final class FoundationController
         $status=match($category){
             'unauthenticated'=>401,'forbidden','actor_inactive'=>403,
             'not_found','missing_lock_target','missing_locked_context'=>404,
-            'invalid_input','invalid_interval','invalid_name','invalid_kind','scope_mismatch','inactive_catalog_reference'=>422,
-            'commit_outcome_unknown','rollback_outcome_unknown','retry_exhausted','ordinal_exhausted','reference_unavailable','database_unavailable'=>503,
+            'invalid_input','invalid_interval','invalid_name','invalid_kind','invalid_file','scope_mismatch','inactive_catalog_reference'=>422,
+            'commit_outcome_unknown','rollback_outcome_unknown','retry_exhausted','ordinal_exhausted','reference_unavailable','database_unavailable','storage_unavailable','material_unavailable'=>503,
             default=>409,
         };
         $body=['error'=>$category];

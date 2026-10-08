@@ -28,8 +28,9 @@ final class LocalHttpsRuntimeTest extends SubmissionReferenceTestCase
         $environment['EVAL_PROXY_KEY']=bin2hex(random_bytes(32));$environment['EVAL_RUNTIME_KEY']=base64_encode(random_bytes(32));
         $environment['EVAL_RUNTIME_ORIGIN']=$this->origin;
         $environment['EVAL_UI_ENABLED']='1';
+        $environment['EVAL_MATERIAL_ROOT']=$this->directory.'/private-materials';
         $backend=dirname(__DIR__,3);$ini=dirname((string)getenv('EVAL_VENDOR_DIR')).'/php.ini';
-        $this->start([PHP_BINARY,'-c',$ini,'-d','display_errors=0','-S','127.0.0.1:'.$this->upstream,$backend.'/dev-runtime/router.php'],$environment,'php');
+        $this->start([PHP_BINARY,'-c',$ini,'-d','display_errors=0','-d','upload_max_filesize=25M','-d','post_max_size=27M','-S','127.0.0.1:'.$this->upstream,$backend.'/dev-runtime/router.php'],$environment,'php');
         // Node gets no database credentials or encryption key.
         $nodeEnvironment=array_intersect_key($environment,array_flip(['PATH','Path','SystemRoot','TEMP','TMP','EVAL_PROXY_KEY','EVAL_UI_ENABLED']));
         $this->start(['node',$backend.'/dev-runtime/https-proxy.mjs',(string)$port,(string)$this->upstream,$this->directory.'/cert.pem',$this->directory.'/key.pem'],$nodeEnvironment,'node');
@@ -152,7 +153,7 @@ final class LocalHttpsRuntimeTest extends SubmissionReferenceTestCase
     protected function tearDown():void
     {
         foreach(array_reverse($this->workers) as $worker){if(proc_get_status($worker)['running'])proc_terminate($worker);proc_close($worker);}
-        if(isset($this->directory)){foreach(glob($this->directory.'/*') as $file)unlink($file);rmdir($this->directory);}
+        if(isset($this->directory))(new \Illuminate\Filesystem\Filesystem)->deleteDirectory($this->directory);
         parent::tearDown();
     }
     public function testBuiltUiAssetsUseSameVerifiedTlsOriginWithoutExternalReferences():void
@@ -171,5 +172,24 @@ final class LocalHttpsRuntimeTest extends SubmissionReferenceTestCase
         }
         $traversal=file_get_contents($this->origin.'/assets/../../../backend/composer.json',false,$context);
         $this->assertStringNotContainsString('eval/academic-foundation',$traversal);
+    }
+    public function testRealHttpsMultipartTeacherPublishesStudentDownloadsAndUnknownStudentIsDenied():void {
+        $this->migration->table('retained_identity_profiles')->insert(['identity_id'=>$this->teacherActor->identityId,'display_name'=>'Synthetic HTTPS material teacher']);
+        $source=$this->directory.'/material.pdf';$bytes="%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF\n";file_put_contents($source,$bytes);
+        $call=function(string $path,?array $form=null):array {
+            $curl=curl_init($this->origin.$path);$headers=['Origin: '.$this->origin];if($form!==null)$headers[]='X-CSRF-TOKEN: '.$this->csrf;
+            curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CAINFO=>$this->directory.'/cert.pem',CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2,
+                CURLOPT_FOLLOWLOCATION=>false,CURLOPT_TIMEOUT=>5,CURLOPT_COOKIE=>$this->cookie??'',CURLOPT_HTTPHEADER=>$headers]);
+            if($form!==null)curl_setopt($curl,CURLOPT_POSTFIELDS,$form);$wire=curl_exec($curl);$status=curl_getinfo($curl,CURLINFO_RESPONSE_CODE);$mime=curl_getinfo($curl,CURLINFO_CONTENT_TYPE);curl_close($curl);
+            $this->assertNotFalse($wire);return [$status,$wire,$mime];
+        };
+        $this->login($this->teacherActor->identityId);
+        [$status,$wire]=$call('/academic/my-courses/'.$this->assignmentId.'/materials',['title'=>'Fracciones HTTPS','file'=>new \CURLFile($source,'application/octet-stream','fracciones.pdf')]);
+        $this->assertSame(201,$status,$wire);$id=json_decode($wire,true)['data']['id'];
+        $this->login($this->studentActor->identityId);[$status,$wire]=$call('/academic/my-courses/'.$this->assignmentId.'/materials');
+        $this->assertSame(200,$status,$wire);$this->assertSame($id,json_decode($wire,true)['data']['items'][0]['id']);
+        [$status,$wire,$mime]=$call('/academic/materials/'.$id.'/file?disposition=inline');$this->assertSame(200,$status);$this->assertSame($bytes,$wire);$this->assertSame('application/pdf',$mime);
+        [$status]=$call('/academic/materials/'.$id.'/file?scope=other');$this->assertSame(422,$status);
+        $other=$this->actor('student');$this->login($other->identityId);[$status]=$call('/academic/materials/'.$id.'/file');$this->assertSame(404,$status);
     }
 }

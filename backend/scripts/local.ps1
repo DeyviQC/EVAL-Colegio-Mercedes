@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('php', 'composer', 'test', 'db-smoke', 'migrate')][string]$Command = 'php',
+    [ValidateSet('php', 'composer', 'test', 'db-smoke', 'migrate', 'material-reconcile')][string]$Command = 'php',
     [ValidateSet('runtime', 'migration')][string]$Role = 'runtime',
     [ValidateSet('U1', 'U2', 'U3', 'U4', 'U5', 'U6', 'U7', 'U8','U9','U10','U11', 'Auth')][string]$Unit = 'U1',
     [Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments
@@ -24,7 +24,7 @@ try {
     if ($Command -eq 'test' -and $Arguments -and @($Arguments | Where-Object { $_ -notmatch '^(--testdox|--filter=.*)$' }).Count) {
         throw 'Unit test wrapper accepts only --testdox and --filter=...; suite override denied.'
     }
-    if ($Command -in @('test','db-smoke','migrate')) {
+    if ($Command -in @('test','db-smoke','migrate','material-reconcile')) {
         $state = Get-Content -LiteralPath (Join-Path $root 'database-state.json') -Raw | ConvertFrom-Json
         $process = Get-Process -Id $state.pid -ErrorAction Stop
         if ($process.Path -ne $state.executable -or $process.StartTime.ToUniversalTime().Ticks -ne $state.started) { throw 'Owned MySQL process identity mismatch' }
@@ -50,6 +50,7 @@ try {
         'test' { Join-Path $root 'vendor\phpunit\phpunit\phpunit' }
         'db-smoke' { Join-Path $PSScriptRoot 'db-smoke.php' }
         'migrate' { Join-Path $PSScriptRoot 'migrate.php' }
+        'material-reconcile' { Join-Path $PSScriptRoot 'reconcile-materials.php' }
     }
     if ($Command -eq 'php') { & $php -c (Join-Path $root 'php.ini') @Arguments }
     elseif ($Command -eq 'test') {

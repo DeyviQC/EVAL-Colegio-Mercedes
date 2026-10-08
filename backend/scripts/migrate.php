@@ -24,6 +24,7 @@ $freshFlags=array_values(array_intersect($argv,['--fresh-u1','--fresh-u2','--fre
 if (in_array(getenv('EVAL_UNIT'),['U10','U11'],true)) {$files[]=$path.'/2026_10_07_000007_create_activity_references.php';}
 if (getenv('EVAL_UNIT')==='U11') {$files[]=$path.'/2026_10_07_000008_create_submission_references.php';}
 if (getenv('EVAL_UNIT')==='U11') {$files[]=$path.'/2026_10_07_000009_create_retained_identity_profiles.php';}
+if (getenv('EVAL_UNIT')==='U11') {$files[]=$path.'/2026_10_07_000010_create_course_materials.php';}
 if (count($freshFlags)>1) { throw new RuntimeException('Select exactly one disposable unit rebuild.'); }
 if ($freshFlags) {
     $freshUnit=$freshFlags[0]==='--fresh-auth'?'Auth':strtoupper(substr($freshFlags[0],8));
