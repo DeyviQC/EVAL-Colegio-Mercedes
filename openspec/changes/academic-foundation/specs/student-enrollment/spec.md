@@ -140,7 +140,7 @@ For current academic access, EVAL MUST derive a student's grade and section from
 
 #### Scenario: Derive current student scope
 
-- GIVEN a student has an active enrollment for a grade and section in the relevant non-closed period
+- GIVEN a student has an active enrollment for a grade and section in the relevant active period
 - WHEN the student requests current academic content
 - THEN EVAL MUST use that enrollment's grade and section to determine the teaching assignments and activities within the student's current scope
 
@@ -165,11 +165,11 @@ For current academic access, EVAL MUST derive a student's grade and section from
 
 ### Requirement: Transfer visibility boundary
 
-After an immediate transfer is successfully confirmed by the server, EVAL MUST derive the student's scope for new activities and submissions exclusively from the new active enrollment in a non-closed relevant period. The historical enrollment MUST NOT authorize access to a new activity or creation of a new submission. The student MUST retain read access to the student's own enrollment history and submissions made before the transfer, including the original activity, teaching assignment, and accepted-under enrollment context needed to interpret those submissions.
+After an immediate transfer is successfully confirmed by the server, EVAL MUST derive the student's scope for new activities and submissions exclusively from the new active enrollment in an active relevant period. The historical enrollment MUST NOT authorize access to a new activity or creation of a new submission. The student MUST retain read access to the student's own enrollment history and submissions made before the transfer, including the original activity, teaching assignment, and accepted-under enrollment context needed to interpret those submissions.
 
 #### Scenario: Use the destination scope after transfer
 
-- GIVEN a student's immediate transfer has been successfully confirmed by the server and the relevant period remains non-closed
+- GIVEN a student's immediate transfer has been successfully confirmed by the server and the relevant period remains active
 - WHEN the student requests a new activity or creates a new submission
 - THEN EVAL MUST derive the student's academic scope exclusively from the new active enrollment
 

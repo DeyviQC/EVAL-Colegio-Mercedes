@@ -40,3 +40,7 @@ Impact: scoped assignment requirement/design/task clarification and positive/neg
 ## Approval boundary
 
 Approve/revise A/B/C explicitly before U7. These are concrete proposed decisions, not code accommodations. All gates retain later evidence obligations; approving the rules alone does not close 1.2–1.8 or complete tasks 5.1/5.2. Full HTTP/browser/LAN and deferred capabilities remain outside this review.
+
+## Subsequent human approval
+
+The human replied Continue to the concrete final question proposing approval of all three rules. See docs/u7-human-decisions.md and amended OpenSpec for the normative decision. This document retains the reviewed alternatives as historical evidence, not a parallel baseline. U8 non-current replacement mapping remains pending.

@@ -270,3 +270,7 @@ Tasks 4.1/4.2 are complete: 21 tests / 307 assertions on MySQL 8.4.9 eval_u5_tes
 ## Verified U6 handoff (2026-10-07)
 
 Tasks 4.3/4.4 are complete: 22 tests / 291 assertions on isolated MySQL 8.4.9 eval_u6_test. See docs/u6-readiness.md and docs/u6-verification.md for immediate successful confirmation, shared K/date, immutable prior scope, same-day history, ordered unions, actual rollback, refreshed retry authority, uncertain-commit non-replay and three real command races. Seven suites total 186 tests / 1,534 assertions, all passing. Actual persisted submission-context/route integration remains later work; no general student API is claimed. Gates 1.2–1.8 stay open. U7 is stopped pending the human assignment decisions in docs/u7-pending-decisions.md, not inferred from enrollment rules. No apply or remote Git operation occurred.
+
+## Approved U7 assignment decisions (2026-10-07)
+
+The human approved A/B/C in docs/u7-human-decisions.md before U7 code: active-parent activation/operative work with planned planning retained; inclusive planned reservations plus actual-K manual activation not before declared start and refreshed occupied history; valid contained past/current residual closure at actual K for Director/Administrator or Vice Principal. These scoped decisions supersede earlier U7-specific pending statements in 1.2/1.4/5.1/5.2. Non-current teacher replacement mapping remains U8-specific. No gate/task is completed merely by approval; U7 still requires full proving evidence, and all global gates 1.2–1.8 remain open.

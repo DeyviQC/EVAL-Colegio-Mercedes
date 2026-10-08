@@ -8,7 +8,7 @@ Define stable teaching assignments, permitted concurrency, lifecycle transitions
 
 ### Requirement: Stable assignment identity and scope
 
-EVAL MUST give each teaching assignment a stable identity and MUST bind it to exactly one academic period, one teacher, one subject or area, one grade, and one section. The section MUST belong to the selected grade. Assignment creation, including planned creation, MUST be rejected in a closed period. A planned assignment in a planned period MUST be supported with valid dates and no conflicting interval. A planned assignment MUST NOT itself authorize operational work; a planned period MUST NOT be treated as the current period. These are distinct from requested-period operation eligibility: whether assignment activation or new academic work may occur under a planned parent remains an unresolved product decision outside the approved closed-parent policy. Non-closed-parent predicates below express that closed-parent restriction, not a sufficient grant of planned-parent eligibility or an active-parent-only rule; this capability does not resolve that decision or change existing valid-operation flows.
+EVAL MUST give each teaching assignment a stable identity and MUST bind it to exactly one academic period, one teacher, one subject or area, one grade, and one section. The section MUST belong to the selected grade. Assignment creation, including planned creation, MUST be rejected in a closed period. A planned assignment in a planned period MUST be supported with valid dates and no conflicting interval. A planned assignment MUST NOT itself authorize operational work; a planned period MUST NOT be treated as the current period. Assignment activation and new operative work (replacement successors, activities and submissions) MUST require an active requested parent period. This operation-specific eligibility MUST NOT prohibit valid planned-assignment creation under planned or active parents, valid residual cleanup or role-bounded history under closed parents.
 
 #### Scenario: Create a teaching assignment
 
@@ -44,11 +44,11 @@ EVAL MUST give each teaching assignment a stable identity and MUST bind it to ex
 
 ### Requirement: Assignment lifecycle and effective interval
 
-Each teaching assignment MUST have an effective start date and MUST be in exactly one of `planned`, `active`, or `closed` states. Activation MUST establish an active effective interval, closure MUST record an end date not earlier than the start date, and a closed assignment MUST NOT become active again. Activation MUST be denied under a closed period. Residual active assignments under a closed period MAY be explicitly closed by director/administrator or vice principal with valid dates, including unchanged period containment; closure MUST NOT happen automatically.
+Each teaching assignment MUST have an effective start date and MUST be in exactly one of `planned`, `active`, or `closed` states. Activation MUST establish an active effective interval, closure MUST record an end date not earlier than the start date, and a closed assignment MUST NOT become active again. Activation MUST require an active parent and server school-local today in America/Lima on or after the declared start. It MUST be explicit/manual at actual successful K, preserving declared dates without midnight conversion, backdating, guessed future ordinals or automatic activation. Residual active assignments under a closed period MAY be explicitly closed by director/administrator or vice principal with valid dates, including unchanged period containment; closure MUST NOT happen automatically.
 
 #### Scenario: Activate a planned assignment
 
-- GIVEN a planned assignment has a valid scope and start date within its non-closed academic period
+- GIVEN a planned assignment has a valid scope and start date within its active academic period, and server school-local today is on or after that declared start
 - WHEN an authorized director/administrator or vice principal activates it
 - THEN EVAL MUST mark it active for its effective interval
 
@@ -78,13 +78,13 @@ A teacher MAY hold multiple concurrent teaching assignments. Multiple teachers M
 #### Scenario: Assign one teacher to multiple scopes
 
 - GIVEN a teacher has an active teaching assignment
-- WHEN another valid assignment for that teacher and a different academic scope in a non-closed period is activated
+- WHEN another valid assignment for that teacher and a different academic scope in an active period is activated
 - THEN EVAL MUST permit both assignments to remain active
 
 #### Scenario: Assign multiple teachers to the same scope
 
 - GIVEN one teacher has an active assignment for an academic scope
-- WHEN a distinct assignment for another teacher and the same scope in a non-closed period is activated
+- WHEN a distinct assignment for another teacher and the same scope in an active period is activated
 - THEN EVAL MUST permit both assignments
 - AND EVAL MUST preserve each assignment's independent identity
 
@@ -106,11 +106,11 @@ EVAL MUST reject teaching assignments for the same teacher, period, subject or a
 
 ### Requirement: Non-destructive teacher replacement
 
-Replacing a teacher MUST close the prior teaching assignment and create a new teaching assignment with a new identity. EVAL MUST NOT overwrite the teacher on, delete, or reuse the identity of the prior assignment. Replacement successor creation MUST be rejected under a closed period, without closing the prior assignment as part of the rejected replacement. This does not add scheduled replacement or resolve non-current date mapping.
+Replacing a teacher MUST close the prior teaching assignment and create a new teaching assignment with a new identity. EVAL MUST NOT overwrite the teacher on, delete, or reuse the identity of the prior assignment. Replacement successor creation MUST require an active parent and MUST be rejected under a planned or closed period, without closing the prior assignment as part of the rejected replacement. This does not add scheduled replacement or resolve non-current date mapping.
 
 #### Scenario: Replace an assigned teacher
 
-- GIVEN a teacher has an active assignment in a non-closed period
+- GIVEN a teacher has an active assignment in an active period
 - WHEN an authorized director/administrator or vice principal records a replacement effective on a valid date
 - THEN EVAL MUST close the prior assignment
 - AND EVAL MUST create a new assignment for the replacement teacher
@@ -148,7 +148,7 @@ Activities and submissions associated with a teaching assignment MUST retain tha
 
 ### Requirement: Closed-assignment behavior
 
-EVAL MUST prevent creation of new activities for a closed teaching assignment or for an active assignment whose parent period is closed. Closing an assignment MUST NOT by itself cancel, reassign, or delete activities and submissions already bound to that assignment. Under the minimum routing contract, assignment closure alone MUST NOT prevent acceptance for an existing activity when the parent period is non-closed and the student has a currently compatible active enrollment; the route MUST remain the original assignment. Complete activity availability remains deferred. Period closure, unlike assignment closure alone, MUST deny every new submission including late submissions.
+EVAL MUST prevent creation of new activities for a closed teaching assignment or for an active assignment whose parent period is closed. Closing an assignment MUST NOT by itself cancel, reassign, or delete activities and submissions already bound to that assignment. Under the minimum routing contract, assignment closure alone MUST NOT prevent acceptance for an existing activity when the parent period is active and the student has a currently compatible active enrollment; the route MUST remain the original assignment. Complete activity availability remains deferred. Period closure, unlike assignment closure alone, MUST deny every new submission including late submissions.
 
 #### Scenario: Reject new activity through an active child of a closed period
 
@@ -178,3 +178,15 @@ EVAL MUST resolve assignment scope, lifecycle, and historical ownership on the s
 - AND external Internet is unavailable
 - WHEN EVAL authorizes an assignment-bound operation
 - THEN EVAL MUST resolve the teaching assignment and its lifecycle locally
+
+### Requirement: Approved planning and operational conflict representation
+
+For the same teacher, period, instructional entry, grade and section, EVAL MUST compare planned reservations using inclusive declared dates. The exclusive planning end MUST be the supplied end plus one day, or period end plus one day for an open end. Overlapping planned reservations MUST be rejected; disjoint reservations MUST be allowed. Distinct teachers MUST retain independent concurrency.
+
+Planning against an active row MUST use its declared planning range. A disjoint future plan MUST NOT grant current authority or guarantee successful activation. Activation MUST revalidate actual half-open occupied operational intervals at prospective K, including relevant retained history. An open active interval MUST block duplicate activation even if declared planning ranges were disjoint. Planned reservations remain part of conflict validation and MUST NOT be excluded merely because they are not active.
+
+Retained operational history ending on/before prospective K MUST be treated as preceding a new manual activation. EVAL MUST permit a later same-day activation when actual key intervals do not overlap, without rejecting solely because declared dates share the day. It MUST NOT derive guessed future keys from dates, backdate authority, replay the ledger as current state or impose a blanket ban on same-day operations.
+
+### Requirement: Approved administrative assignment closure mapping
+
+Director/Administrator or Vice Principal MAY explicitly close a residual active assignment with a valid past/current declared end: end MUST NOT precede declared start, MUST remain within the period's unchanged inclusive boundaries, and MUST NOT exceed server school-local today in America/Lima. A future declared closure date MUST be rejected without mutations. Preserve that DATE and end operational authority at actual successful K, including execution after period calendar end or parent closure. EVAL MUST NOT backdate K, schedule closure, delete references or rewrite accepted context. This grants Vice Principal no enrollment-management permission and does not resolve non-current teacher replacement mapping.

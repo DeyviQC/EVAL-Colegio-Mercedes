@@ -163,3 +163,7 @@ EVAL MUST perform essential current-period resolution and period validation on t
 - AND external Internet is unavailable
 - WHEN a local client requests an operation that requires the current academic period
 - THEN EVAL MUST resolve and validate the period locally
+
+### Requirement: Operative requested-period eligibility
+
+Assignment activation, replacement successors, new activities and all new submissions (normal and late) MUST require an active requested parent period. Planned and closed parents MUST deny those operative categories despite active children. This MUST NOT prohibit valid planned teaching-assignment creation under planned or active parents, valid role/date-bounded residual cleanup under closed parents, role-bounded historical reads, global catalog management or other periods. Requested-resource validation MUST NOT substitute a different current period for the requested parent.
