@@ -1,0 +1,18 @@
+import { exact,text,decimalId } from './contracts.js';
+export type Account={id:string;name:string;username:string;role:'teacher'|'student';active:boolean};
+export type OwnAccount={id:string;name:string;username:string;can_manage:boolean};
+export function ownAccount(wire:unknown):OwnAccount{const envelope=exact(wire,['data']),row=exact(envelope.data,['id','name','username','can_manage']);if(typeof row.can_manage!=='boolean')throw new Error('Invalid account');return {id:decimalId(row.id),name:text(row.name),username:text(row.username),can_manage:row.can_manage};}
+export function accountDirectory(wire:unknown):{items:Account[];next_after:string|null}{const envelope=exact(wire,['data']),page=exact(envelope.data,['items','next_after']);if(!Array.isArray(page.items)||page.items.length>50)throw new Error('Invalid accounts');const items=page.items.map(value=>{const row=exact(value,['id','name','username','role','active']);if(!['teacher','student'].includes(row.role as string)||typeof row.active!=='boolean')throw new Error('Invalid account');return {id:decimalId(row.id),name:text(row.name),username:text(row.username),role:row.role as Account['role'],active:row.active};});return {items,next_after:page.next_after===null?null:decimalId(page.next_after)};}
+export class AccountError extends Error{constructor(public category:string,public status:number|null,public uncertain=false){super(category);}}
+export function createAccountClient(csrf:()=>string,transport:typeof fetch=fetch){
+ let uncertain=false;
+ async function request(path:string,input?:Record<string,unknown>){const unsafe=input!==undefined;if(unsafe&&uncertain)throw new AccountError('outcome_unknown',null,true);const token=csrf();if(unsafe&&!token)throw new AccountError('csrf_missing',419);
+ let response:Response;try{response=await transport(path,{method:unsafe?'POST':'GET',credentials:'same-origin',cache:'no-store',redirect:'error',headers:{Accept:'application/json',...(unsafe?{'Content-Type':'application/json','X-CSRF-TOKEN':token}:{})},...(unsafe?{body:JSON.stringify(input)}:{})});}catch{if(unsafe)uncertain=true;throw new AccountError('connection_failed',null,unsafe);}
+ let wire:unknown;try{wire=await response.json();}catch{if(unsafe)uncertain=true;throw new AccountError('invalid_response',response.status,unsafe);}
+ if(!response.ok){const category=typeof (wire as {error?:unknown})?.error==='string'?(wire as {error:string}).error:'invalid_response';if(unsafe&&response.status>=500)uncertain=true;throw new AccountError(category,response.status,unsafe&&response.status>=500);}
+ return wire;
+ }
+ async function mutation(path:string,input:Record<string,unknown>,secret=false){const wire=await request(path,input);try{const envelope=exact(wire,['data']),row=exact(envelope.data,secret?['id','password']:['id']);const result={id:decimalId(row.id),...(secret?{password:text(row.password)}:{})};if(secret&&result.password?.length!==20)throw new Error();return result;}catch{uncertain=true;throw new AccountError('invalid_response',200,true);}}
+ return {own:async()=>ownAccount(await request('/account')),directory:async(username='',after:string|null=null)=>accountDirectory(await request('/users?'+new URLSearchParams({...username?{username}:{},...after?{after:decimalId(after)}:{}}))),create:(name:string,username:string,role:Account['role'])=>mutation('/users',{name,username,role},true),action:(id:string,action:'reset-password'|'deactivate'|'reactivate')=>mutation('/users/'+decimalId(id)+'/'+action,{},action==='reset-password'),changePassword:(current_password:string,password:string)=>mutation('/account/password',{current_password,password}),acknowledgeReview:()=>{uncertain=false;}};
+}
+export type AccountClient=ReturnType<typeof createAccountClient>;

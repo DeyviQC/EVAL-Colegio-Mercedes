@@ -1,4 +1,5 @@
 .atl/
+/.local/
 /backend/vendor/
 /backend/.env*
 /backend/.phpunit.cache/

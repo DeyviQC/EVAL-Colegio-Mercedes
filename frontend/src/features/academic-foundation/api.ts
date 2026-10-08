@@ -27,6 +27,12 @@ export function createAcademicClient(transport:typeof fetch,csrf:()=>string) {
   }
   const locator=decimalId;
   return {
+    assignmentDirectory:<T>(kind:'assignments'|'teachers'|'periods'|'entries'|'grades'|'sections',decode:(value:unknown)=>T,after:string|null=null)=>{
+      if(!['assignments','teachers','periods','entries','grades','sections'].includes(kind))throw new Error('Invalid assignment directory');
+      return request('assignment-workspace?kind='+kind+(after?'&after='+locator(after):''),decode);
+    },
+    replaceTeacher:(id:string,teacherId:string)=>request('assignments/'+locator(id)+'/replace',confirmedTransition,{teacher_id:locator(teacherId)}),
+    enrollmentDirectory:<T>(kind:'enrollments'|'enrollment-students',decode:(value:unknown)=>T,after:string|null=null)=>{if(!['enrollments','enrollment-students'].includes(kind))throw new Error('Invalid directory');return request(kind+(after?'?after='+locator(after):''),decode);},
     myCourses:<T>(decode:(value:unknown)=>T,after:string|null=null)=>request('my-courses'+(after?'?after='+locator(after):''),decode),
     course:<T>(id:string,decode:(value:unknown)=>T)=>request('my-courses/'+locator(id),decode),
     directory:<T>(path:'periods'|'catalog/entry'|'catalog/grade'|'catalog/section',decode:(value:unknown)=>T,after:string|null=null)=>request(path+(after===null?'':'?after='+locator(after)),decode),

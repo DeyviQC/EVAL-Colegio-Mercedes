@@ -20,7 +20,7 @@ final class FoundationCommandChecks
     {
         $password=$db->table('local_credentials')->where('id',$actor->identityId)->value('password');
         if(!is_string($password) || $actor->credentialRevision()===null
-            || !hash_equals($actor->credentialRevision(),hash('sha256',$password))){throw new AcademicCommandFailure('forbidden');}
+            || !hash_equals($actor->credentialRevision(),\App\Infrastructure\Authentication\CredentialRevision::current($db,$actor->identityId,$password))){throw new AcademicCommandFailure('forbidden');}
     }
     public static function fields(array $input,array $allowed,array $required=[]):void
     {

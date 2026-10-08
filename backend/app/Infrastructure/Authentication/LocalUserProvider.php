@@ -35,6 +35,6 @@ final class LocalUserProvider extends DatabaseUserProvider
     {
         $id=AcademicLockSet::id($user->getAuthIdentifier());
         $roles=$this->connection->table('local_role_grants')->where('identity_id',$id)->orderBy('role')->pluck('role')->all();
-        return new AuthenticatedActor($id,$roles,hash('sha256',$user->getAuthPassword()));
+        return new AuthenticatedActor($id,$roles,CredentialRevision::current($this->connection,$id,$user->getAuthPassword()));
     }
 }

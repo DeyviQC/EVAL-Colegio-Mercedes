@@ -1,0 +1,11 @@
+import { assessment,delivery,createActivityClient } from './activities.js';
+import { AcademicApiError } from './api.js';
+const assert=(v:unknown)=>{if(!v)throw new Error('Assessment assertion failed');};
+const sample={id:'9007199254740993',version_id:'4',grade:'AD',feedback:'Logro destacado.',recorded_at:'2026-10-08 12:00:00'};
+function rejects(fn:()=>unknown){try{fn();}catch{return;}throw new Error('Expected rejection');}
+export const assessmentCases:[string,()=>void|Promise<void>][]=[
+ ['assessment accepts exact grade revision and rejects private authority',()=>{assert(assessment(sample).id===sample.id);for(const r of [{...sample,grade:'20'},{...sample,id:4},{...sample,feedback:''},{...sample,teacher_id:'1'},{...sample,version_id:'0'}])rejects(()=>assessment(r));}],
+ ['delivery requires server assessment flags and nullable pending state',()=>{const r={id:'2',student_name:'Student',accepted_at:'2026-10-08',version:{id:'4',answer:'Work',filename:null,bytes:null,recorded_at:'now'},assessment:null,can_assess:false};assert(delivery(r).assessment===null);assert(delivery({...r,assessment:sample,can_assess:true}).assessment?.grade==='AD');rejects(()=>delivery({...r,can_assess:'true'}));}],
+ ['assessment save sends expected version and revision with CSRF',async()=>{const client=createActivityClient(()=>'csrf',(async(path,options)=>{assert(path==='/education/deliveries/2/assessments');const body=JSON.parse(String(options?.body));assert(body.expected_version_id==='4'&&body.expected_assessment_id===null&&body.grade==='A');assert((options?.headers as Record<string,string>)['X-CSRF-TOKEN']==='csrf');return new Response(JSON.stringify({data:{id:'2',assessment_id:'8'}}));}) as typeof fetch);assert((await client.assess('2','4',null,'A','Bien.')).assessment_id==='8');}],
+ ['malformed assessment acknowledgement blocks subsequent corrections',async()=>{let calls=0;const client=createActivityClient(()=>'csrf',(async()=>{calls++;return new Response(JSON.stringify({data:{id:'2',assessment_id:8}}));}) as typeof fetch);try{await client.assess('2','4',null,'A','Bien.');}catch(e){assert(e instanceof AcademicApiError&&e.outcomeUnknown);}try{await client.assess('2','4',null,'B','Cambio.');}catch{}assert(calls===1&&client.isUncertain());}],
+];

@@ -4,3 +4,32 @@ body { margin:0; background:var(--color-eval-paper); color:var(--color-eval-ink)
 button, input { font:inherit; }
 button:disabled { opacity:.6; cursor:wait; }
 :focus-visible { outline:3px solid #bd6718; outline-offset:3px; }
+
+/* Presentation adapted from DeyviQC's 2e5d053 frontend; existing API contracts retained. */
+.eval-layout { display:grid; grid-template-columns:240px minmax(0,1fr); min-height:100vh; background:#f5f7fc; color:#172449; }
+.eval-sidebar { position:sticky; top:0; height:100vh; display:flex; flex-direction:column; gap:24px; padding:28px; background:white; border-right:1px solid #e2e7f3; min-width:0; }
+.eval-brand h1 { font-size:30px; font-weight:700; color:#1b3184; margin:0; }
+.eval-brand span { font-size:9px; letter-spacing:2px; color:#827621; }
+.eval-brand p { font-size:12px; line-height:1.7; margin-top:20px; }
+.eval-navigation { display:grid; gap:8px; overflow-y:auto; min-height:0; }
+.eval-navigation button { text-align:left; padding:11px 15px; border-radius:10px; color:#536584; background:transparent; cursor:pointer; }
+.eval-navigation button[aria-pressed="true"] { background:#1b3184; color:white; }
+.eval-account { margin-top:auto; border-top:1px solid #e2e7f3; padding-top:16px; font-size:12px; }
+.eval-account button { margin-top:12px; padding:11px 15px; border-radius:10px; color:white; background:#1b3184; cursor:pointer; }
+.eval-workspace { min-width:0; padding:35px; width:100%; max-width:1500px; margin:0 auto; }
+.eval-workspace-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:28px; }
+.eval-eyebrow { font-size:10px; letter-spacing:1.5px; color:#a72739; font-weight:700; margin-bottom:7px; }
+.eval-local-badge { font-size:11px; background:#f4efdb; color:#79691f; padding:6px 10px; border-radius:20px; }
+.eval-workspace-content { background:white; border:1px solid #e1e6f1; border-radius:15px; padding:24px; overflow-wrap:anywhere; }
+.eval-workspace-content article { background:white; box-shadow:0 3px 14px #182c8308; }
+.eval-login { max-width:600px; }
+@media(max-width:900px) {
+  .eval-layout { display:block; }
+  .eval-sidebar { position:static; height:auto; padding:20px; gap:16px; }
+  .eval-brand p { margin-top:8px; }
+  .eval-navigation { display:flex; flex-wrap:wrap; overflow:visible; }
+  .eval-account { margin-top:0; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  .eval-account button { margin-top:0; }
+  .eval-workspace { padding:20px; }
+  .eval-workspace-content { padding:16px; }
+}

@@ -8,6 +8,54 @@ use Symfony\Component\HttpFoundation\Response;
 /** In-process approved role journeys, not a browser/network/outage test. */
 final class LocalAcademicOperationTest extends SubmissionReferenceTestCase
 {
+    public function testAssignmentWorkspaceRestrictsDiscoveryToManagementDuty():void
+    {
+        $controller=new \App\Http\Controllers\Academic\FoundationController($this->db);
+        $cursor=(string)((int)$this->assignmentId-1);$url='https://eval.test/academic/assignment-workspace?kind=assignments'.($cursor==='0'?'':'&after='.$cursor);
+        $request=\Symfony\Component\HttpFoundation\Request::create($url);$vice=$this->actor('vice_principal');
+        $this->assertSame(401,$controller->handle($request,null)->getStatusCode());
+        foreach([$this->teacherActor,$this->studentActor] as $actor)$this->assertSame(403,$controller->handle($request,$actor)->getStatusCode());
+        $this->assertSame(503,$controller->handle($request,$vice)->getStatusCode());
+        $name='Assignment teacher '.$this->suffix;
+        $this->migration->table('retained_identity_profiles')->insert(['identity_id'=>$this->teacherActor->identityId,'display_name'=>$name]);
+        foreach([$this->actor,$vice] as $actor){
+            $response=$controller->handle($request,$actor);$this->assertSame(200,$response->getStatusCode());
+            $row=json_decode($response->getContent(),true)['data']['items'][0];
+            $this->assertSame($this->assignmentId,$row['id']);$this->assertSame($name,$row['teacher_name']);$this->assertSame('active',$row['state']);
+            $this->assertArrayNotHasKey('password',$row);$this->assertArrayNotHasKey('students',$row);
+        }
+        $this->assertSame(403,$controller->handle(\Symfony\Component\HttpFoundation\Request::create('https://eval.test/academic/enrollments'),$vice)->getStatusCode());
+        $this->assertSame(403,$controller->handle(\Symfony\Component\HttpFoundation\Request::create('https://eval.test/academic/periods'),$vice)->getStatusCode());
+        foreach(['periods','entries','grades','sections'] as $kind){
+            $response=$controller->handle(\Symfony\Component\HttpFoundation\Request::create('https://eval.test/academic/assignment-workspace?kind='.$kind),$vice);
+            $this->assertSame(200,$response->getStatusCode());$items=json_decode($response->getContent(),true)['data']['items'];
+            foreach($items as $row){if($kind==='periods')$this->assertContains($row['state'],['planned','active']);else $this->assertTrue($row['is_active']);}
+        }
+        foreach(['kind=students','kind=assignments&actor=1','kind=assignments&after[]=1','kind=assignments&after=0'] as $query)$this->assertSame(422,$controller->handle(\Symfony\Component\HttpFoundation\Request::create('https://eval.test/academic/assignment-workspace?'.$query),$vice)->getStatusCode());
+        $stale=new AuthenticatedActor($vice->identityId,['vice_principal'],'stale');$this->assertSame(403,$controller->handle($request,$stale)->getStatusCode());
+    }
+    public function testDirectorEnrollmentDirectoryUsesRetainedNamesAndRejectsOtherRoles():void
+    {
+        $controller=new \App\Http\Controllers\Academic\FoundationController($this->db);
+        $cursor=(string)((int)$this->enrollmentId-1);$suffix=$cursor==='0'?'':'?after='.$cursor;
+        $request=\Symfony\Component\HttpFoundation\Request::create('https://eval.test/academic/enrollments'.$suffix);
+        $this->assertSame(401,$controller->handle($request,null)->getStatusCode());
+        foreach([$this->teacherActor,$this->studentActor,$this->actor('vice_principal')] as $actor)$this->assertSame(403,$controller->handle($request,$actor)->getStatusCode());
+        $this->assertSame(503,$controller->handle($request,$this->actor)->getStatusCode(),'Missing retained names must fail closed.');
+        $this->migration->table('retained_identity_profiles')->insert(['identity_id'=>$this->studentActor->identityId,'display_name'=>'Student directory '.$this->suffix]);
+        $response=$controller->handle($request,$this->actor);$this->assertSame(200,$response->getStatusCode());
+        $items=json_decode($response->getContent(),true)['data']['items'];$this->assertCount(1,$items);
+        $this->assertSame($this->enrollmentId,$items[0]['id']);$this->assertSame('Student directory '.$this->suffix,$items[0]['student_name']);
+        $this->assertSame($this->grade,$items[0]['grade_id']);$this->assertSame('active',$items[0]['state']);
+        $this->assertArrayNotHasKey('login',$items[0]);$this->assertArrayNotHasKey('password',$items[0]);
+        foreach(['?actor=1','?after[]=1','?after=0'] as $query)$this->assertSame(422,$controller->handle(\Symfony\Component\HttpFoundation\Request::create('https://eval.test/academic/enrollments'.$query),$this->actor)->getStatusCode());
+        $studentCursor=(string)((int)$this->studentActor->identityId-1);
+        $students=$controller->handle(\Symfony\Component\HttpFoundation\Request::create('https://eval.test/academic/enrollment-students?after='.$studentCursor),$this->actor);
+        $this->assertSame(200,$students->getStatusCode());$data=json_decode($students->getContent(),true)['data'];
+        $this->assertSame(['id'=>$this->studentActor->identityId,'name'=>'Student directory '.$this->suffix],$data['items'][0]);
+        $spoofed=new AuthenticatedActor($this->actor->identityId,['director_admin'],'stale');
+        $this->assertSame(403,$controller->handle($request,$spoofed)->getStatusCode());
+    }
     public function testRealCourseBridgeAndRetainedNames():void
     {
         $labels=new \App\Infrastructure\Persistence\Academic\LocalIdentityLabels($this->db);

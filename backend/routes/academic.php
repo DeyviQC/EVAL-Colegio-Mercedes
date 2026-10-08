@@ -6,6 +6,13 @@ use Symfony\Component\HttpFoundation\Request;
 /** Explicit composition port for the isolated adapter; no Laravel kernel/listener is installed. */
 return static function(LocalSessionAuthentication $authentication,FoundationController $controller):Closure {
     return static fn(Request $request)=>$authentication->handle($request,function($actor)use($request,$controller){
+        if($request->getPathInfo()==='/notifications'||str_starts_with($request->getPathInfo(),'/notifications/'))return (new \App\Http\Controllers\Academic\AcademicNotificationsController(\Illuminate\Database\Capsule\Manager::connection()))->handle($request,$actor);
+        if(str_starts_with($request->getPathInfo(),'/reports/'))return (new \App\Http\Controllers\Academic\ClassroomReportController(\Illuminate\Database\Capsule\Manager::connection()))->handle($request,$actor);
+        if(str_starts_with($request->getPathInfo(),'/education/')){
+            $root=getenv('EVAL_MATERIAL_ROOT');if(!$root)return FoundationController::failure(new \App\Infrastructure\Persistence\Academic\AcademicTransactionFailure('storage_unavailable',bin2hex(random_bytes(16))));
+            try{return (new \App\Http\Controllers\Academic\ActivityDeliveryController(\Illuminate\Database\Capsule\Manager::connection(),new \App\Infrastructure\Persistence\Academic\LocalMaterialStorage(dirname($root).DIRECTORY_SEPARATOR.'deliveries')))->handle($request,$actor);}catch(\Throwable){return FoundationController::failure(new \App\Infrastructure\Persistence\Academic\AcademicTransactionFailure('storage_unavailable',bin2hex(random_bytes(16))));}
+        }
+        if(preg_match('#^/(?:users(?:/.*)?|account(?:/.*)?)$#',$request->getPathInfo()))return (new \App\Http\Controllers\LocalAccountController(\Illuminate\Database\Capsule\Manager::connection()))->handle($request,$actor);
         if(preg_match('#^/academic/(?:my-courses/[1-9][0-9]*/materials|materials/[1-9][0-9]*(?:/file)?)$#',$request->getPathInfo())){
             $root=getenv('EVAL_MATERIAL_ROOT');if(!$root)return FoundationController::failure(new \App\Infrastructure\Persistence\Academic\AcademicTransactionFailure('storage_unavailable',bin2hex(random_bytes(16))));
             try{$storage=new \App\Infrastructure\Persistence\Academic\LocalMaterialStorage($root);

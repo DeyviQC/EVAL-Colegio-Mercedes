@@ -128,7 +128,7 @@ final class LocalHttpsRuntimeTest extends SubmissionReferenceTestCase
             $cookie=trim(substr($header,11));$this->cookie=explode(';',$cookie)[0];
             $this->assertStringContainsString('secure',strtolower($cookie));$this->assertStringContainsString('httponly',strtolower($cookie));$this->assertStringContainsString('samesite=lax',strtolower($cookie));}}
         $data=json_decode($wire,true,flags:JSON_THROW_ON_ERROR);$this->csrf=$data['csrf_token']??$this->csrf;
-        return [(int)$status[1],$data];
+        return [(int)$status[1],$data,$http_response_header];
     }
     private function login(string $id):void
     {
@@ -139,14 +139,17 @@ final class LocalHttpsRuntimeTest extends SubmissionReferenceTestCase
     public function testRealTlsSessionScopeMutationCsrfAndCredentialRevocation():void
     {
         $submission=$this->accept();$otherEnrollment=$this->enrollment();
+        $this->migration->table('retained_identity_profiles')->insert(['identity_id'=>$this->teacherActor->identityId,'display_name'=>'Synthetic original HTTPS teacher']);
         $first=$this->request('/academic/periods/'.$this->period);$this->assertSame(401,$first[0],json_encode($first));$this->login($this->actor->identityId);
         [$status,$view]=$this->request('/academic/periods/'.$this->period);$this->assertSame(200,$status);$this->assertSame($this->period,$view['data']['id']);
         $key=$this->ordinal();$this->assertSame(419,$this->request('/academic/periods/'.$this->period.'/close','POST',[],['X-CSRF-TOKEN'=>'forged'])[0]);$this->assertSame($key,$this->ordinal());
         $this->assertSame(200,$this->request('/academic/periods/'.$this->period.'/close','POST')[0]);
         $this->assertSame('closed',$this->db->table('academic_periods')->where('id',$this->period)->value('state'));
-        [$historyStatus,$historyError]=$this->request('/academic/submissions/'.$submission);
-        $this->assertSame(503,$historyStatus);$this->assertSame('reference_unavailable',$historyError['error']);
-        $this->assertFalse($historyError['automatic_retry']);
+        [$historyStatus,$history]=$this->request('/academic/submissions/'.$submission);
+        $this->assertSame(200,$historyStatus,json_encode($history));
+        $this->assertSame($this->assignmentId,$history['data']['originalTeachingAssignment']['id']);
+        $this->assertSame('Synthetic original HTTPS teacher',$history['data']['originalTeachingAssignment']['teacher']['displayName']);
+        $this->assertSame($this->enrollmentId,$history['data']['acceptedUnderEnrollment']['id']);
         $this->migration->table('local_credentials')->where('id',$this->actor->identityId)->update(['password'=>(new BcryptHasher(['rounds'=>4]))->make(bin2hex(random_bytes(16)))]);
         $first=$this->request('/academic/periods/'.$this->period);$this->assertSame(401,$first[0],json_encode($first));
         $this->login($this->studentActor->identityId);
@@ -162,6 +165,53 @@ final class LocalHttpsRuntimeTest extends SubmissionReferenceTestCase
         $this->assertSame(403,$this->request('/auth/login','POST',[],['Origin'=>'https://outside.test'])[0]);
         $wire=file_get_contents('http://127.0.0.1:'.$this->upstream.'/auth/session',false,stream_context_create(['http'=>['ignore_errors'=>true,'timeout'=>3]]));
         $this->assertSame(['error'=>'invalid_proxy_request'],json_decode($wire,true));
+    }
+    public function testRealHttpsHistoryKeepsOriginalRouteAndRoleScopeWithoutAcademicWrites():void
+    {
+        $submission=$this->accept();$path='/academic/submissions/'.$submission;
+        $this->assertSame(401,$this->request($path)[0]);
+        $replacementTeacher=$this->actor('teacher');
+        $denied=[$this->actor('vice_principal'),$replacementTeacher,$this->actor('student')];
+        $section=$this->catalog->create($this->actor,'section',['name'=>'HTTPS destination '.$this->suffix,'grade_id'=>$this->grade]);
+        $transfer=(new \App\Application\Academic\Commands\TransferStudent($this->db))->execute($this->actor,$this->enrollmentId,['grade_id'=>$this->grade,'section_id'=>$section]);
+        $replacement=(new \App\Application\Academic\Commands\ReplaceTeacher($this->db))->execute($this->actor,$this->assignmentId,['teacher_id'=>$replacementTeacher->identityId]);
+        $this->periods->close($this->actor,$this->period);
+        $key=$this->ordinal();$events=$this->db->table('academic_lifecycle_events')->count();
+        $activities=$this->db->table('activity_references')->orderBy('id')->get()->toJson();
+        $submissions=$this->db->table('submission_references')->orderBy('id')->get()->toJson();
+        $allowed=[$this->actor,$this->teacherActor,$this->studentActor];
+        foreach($allowed as $actor){
+            $this->login($actor->identityId);[$status,$error,$headers]=$this->request($path);
+            $this->assertSame(503,$status);$this->assertSame(['error'=>'reference_unavailable','correlation_id'=>null,'automatic_retry'=>false],$error);
+            $this->assertContains('cache-control: no-store, private',array_map('strtolower',$headers));
+        }
+        foreach($denied as $actor){$this->login($actor->identityId);$this->assertSame(404,$this->request($path)[0]);}
+        $name='  Synthetic retained HTTPS teacher  ';
+        $this->migration->table('retained_identity_profiles')->insert(['identity_id'=>$this->teacherActor->identityId,'display_name'=>$name]);
+        foreach($allowed as $actor){
+            $this->login($actor->identityId);[$status,$body]=$this->request($path);$this->assertSame(200,$status,json_encode($body));$view=$body['data'];
+            $this->assertSame(['submission','activityReference','acceptedUnderEnrollment','originalTeachingAssignment'],array_keys($view));
+            $this->assertSame(['id','acceptedAt'],array_keys($view['submission']));$this->assertSame($submission,$view['submission']['id']);
+            $this->assertSame($this->activityId,$view['activityReference']['id']);
+            $this->assertSame($this->assignmentId,$view['originalTeachingAssignment']['id']);
+            $this->assertNotSame($replacement['successor_id'],$view['originalTeachingAssignment']['id']);
+            $this->assertSame(['id'=>$this->teacherActor->identityId,'displayName'=>$name],$view['originalTeachingAssignment']['teacher']);
+            $this->assertSame($this->enrollmentId,$view['acceptedUnderEnrollment']['id']);
+            $this->assertNotSame($transfer['successor_id'],$view['acceptedUnderEnrollment']['id']);
+            foreach(['acceptedUnderEnrollment','originalTeachingAssignment'] as $context){
+                $this->assertSame($this->period,$view[$context]['academicPeriod']['id']);
+                $this->assertSame($this->grade,$view[$context]['grade']['id']);$this->assertSame($this->section,$view[$context]['section']['id']);
+                $this->assertNotNull($view[$context]['operationalEndKeyExclusive']);
+            }
+        }
+        foreach($denied as $actor){$this->login($actor->identityId);$this->assertSame(404,$this->request($path)[0]);}
+        $this->migration->table('retained_identity_profiles')->where('identity_id',$this->teacherActor->identityId)->update(['display_name'=>'Corrected retained HTTPS teacher']);
+        $this->login($this->studentActor->identityId);[$status,$body]=$this->request($path);$this->assertSame(200,$status);
+        $this->assertSame('Corrected retained HTTPS teacher',$body['data']['originalTeachingAssignment']['teacher']['displayName']);
+        $this->assertSame($key,$this->ordinal());$this->assertSame($events,$this->db->table('academic_lifecycle_events')->count());
+        $this->assertSame($activities,$this->db->table('activity_references')->orderBy('id')->get()->toJson());
+        $this->assertSame($submissions,$this->db->table('submission_references')->orderBy('id')->get()->toJson());
+        $this->assertFalse($this->db->getPdo()->inTransaction());
     }
     public function testActualSessionPersistenceFaultIsSanitizedByKernel():void
     {

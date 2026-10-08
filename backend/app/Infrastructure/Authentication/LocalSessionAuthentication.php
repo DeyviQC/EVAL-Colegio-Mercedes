@@ -52,7 +52,7 @@ final class LocalSessionAuthentication
         $guard->setCookieJar(new CookieJar());
         $user=$guard->user();
         if($session->has($guard->getName()) && (!$user || !hash_equals(
-            (string)$session->get('credential_revision',''),hash('sha256',$user->getAuthPassword())))){
+            (string)$session->get('credential_revision',''),$provider->actor($user)->credentialRevision()))) {
             $guard->logoutCurrentDevice();$session->invalidate();$session->regenerateToken();$user=null;
         }
         if($unsafe && (!is_string($token=$request->headers->get('X-CSRF-TOKEN')) || !hash_equals($session->token(),$token))){
@@ -97,7 +97,7 @@ final class LocalSessionAuthentication
         if(!$guard->attempt(['login'=>$body['login'],'password'=>$body['password']],false)){
             return $this->error('invalid_credentials',401);
         }
-        $session->put('credential_revision',hash('sha256',$guard->user()->getAuthPassword()));
+        $session->put('credential_revision',CredentialRevision::current($this->db,(string)$guard->user()->getAuthIdentifier(),$guard->user()->getAuthPassword()));
         $session->regenerateToken();
         $this->db->table('local_login_limits')->where('id',$limit)->update(['attempts'=>0,'window_started'=>time()]);
         return new JsonResponse(['authenticated'=>true,'csrf_token'=>$session->token()]);

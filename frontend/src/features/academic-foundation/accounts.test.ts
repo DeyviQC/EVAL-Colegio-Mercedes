@@ -1,0 +1,13 @@
+import { accountDirectory,createAccountClient,AccountError } from './accounts.js';
+const assert={
+ equal:(actual:unknown,expected:unknown)=>{if(actual!==expected)throw new Error('Account equality failed');},
+ deepEqual:(actual:unknown,expected:unknown)=>{if(JSON.stringify(actual)!==JSON.stringify(expected))throw new Error('Account structure failed');},
+ throws:(run:()=>unknown)=>{try{run();}catch{return;}throw new Error('Expected account rejection');},
+ rejects:async(run:Promise<unknown>,check?:(error:unknown)=>boolean)=>{try{await run;}catch(error){if(!check||check(error))return;throw new Error('Unexpected account rejection');}throw new Error('Expected account rejection');}
+};
+export const accountCases:[string,()=>unknown][]=[
+ ['account directory rejects leaked credentials and unsafe identities',()=>{const good={id:'1',name:'Student',username:'student',role:'student',active:true};assert.deepEqual(accountDirectory({data:{items:[good],next_after:null}}).items,[good]);for(const row of [{...good,password:'secret'},{...good,id:1},{...good,role:'director_admin'}])assert.throws(()=>accountDirectory({data:{items:[row],next_after:null}}));}],
+ ['uncertain account mutation stays blocked across reads until explicit review',async()=>{let writes=0;const transport=(async(_path,options)=>{if(options?.method==='POST'){writes++;throw new Error('lost acknowledgement');}return new Response(JSON.stringify({data:{items:[],next_after:null}}));}) as typeof fetch;const client=createAccountClient(()=>'csrf',transport);await assert.rejects(client.create('Teacher','teacher.new','teacher'),(error:unknown)=>error instanceof AccountError&&error.uncertain);await client.directory();await assert.rejects(client.action('1','reset-password'));assert.equal(writes,1);client.acknowledgeReview();await assert.rejects(client.action('1','reset-password'));assert.equal(writes,2);}],
+ ['account transport validates confirmation and uses same-origin CSRF',async()=>{let request:RequestInit|undefined;const client=createAccountClient(()=>'csrf',(async(_path,options)=>{request=options;return new Response(JSON.stringify({data:{id:'2',password:'A'.repeat(20)}}));}) as typeof fetch);const result=await client.create('Teacher','teacher.new','teacher');assert.equal(result.id,'2');assert.equal(request?.credentials,'same-origin');assert.equal((request?.headers as Record<string,string>)['X-CSRF-TOKEN'],'csrf');}],
+ ['missing CSRF denies credential writes before transport',async()=>{let calls=0;const client=createAccountClient(()=>'',(async()=>{calls++;throw new Error();}) as typeof fetch);await assert.rejects(client.changePassword('old','new'),(error:unknown)=>error instanceof AccountError&&error.status===419);assert.equal(calls,0);}]
+];

@@ -39,6 +39,17 @@ final class FoundationController
                 $after=$request->query->all()['after']??null;if($after!==null)$after=$this->locator($after);
                 return $this->ok($path==='/academic/my-courses'?$courses->page($actor,$after):$courses->detail($actor,$this->locator($courseMatch[1])));
             }
+            if($method==='GET'&&$path==='/academic/assignment-workspace'){
+                FoundationCommandChecks::fields($input,[]);FoundationCommandChecks::fields($request->query->all(),['kind','after'],['kind']);
+                $kind=$request->query->all()['kind'];if(!is_string($kind))throw new AcademicCommandFailure('invalid_input');
+                $after=$request->query->all()['after']??null;if($after!==null)$after=$this->locator($after);
+                return $this->ok((new \App\Application\Academic\Queries\AssignmentDirectoryQuery($this->db))->page($actor,$kind,$after));
+            }
+            if($method==='GET'&&in_array($path,['/academic/enrollments','/academic/enrollment-students'],true)){
+                FoundationCommandChecks::fields($input,[]);FoundationCommandChecks::fields($request->query->all(),['after']);
+                $after=$request->query->all()['after']??null;if($after!==null)$after=$this->locator($after);
+                return $this->ok((new \App\Application\Academic\Queries\EnrollmentDirectoryQuery($this->db))->page($actor,$path==='/academic/enrollments'?'enrollments':'students',$after));
+            }
             $directory=$method==='GET' && ($path==='/academic/periods'||preg_match('#^/academic/catalog/(entry|grade|section)$#',$path));
             if($directory){
                 FoundationCommandChecks::fields($input,[]);FoundationCommandChecks::fields($request->query->all(),['after']);

@@ -1,0 +1,4 @@
+<?php
+declare(strict_types=1);
+require __DIR__.'/config.php';if(!evalDevBinding(getenv())||getenv('EVAL_DB_ROLE')!=='runtime')exit(2);require dirname(__DIR__).'/bootstrap.php';
+try{$db=Illuminate\Database\Capsule\Manager::connection();$id=App\Infrastructure\Persistence\Academic\AcademicLockSet::id($argv[1]);$activity=App\Infrastructure\Persistence\Academic\AcademicLockSet::id($argv[2]);$r=$db->table('local_credentials')->where('id',$id)->first();$actor=new App\Infrastructure\Authentication\AuthenticatedActor($id,['student'],App\Infrastructure\Authentication\CredentialRevision::current($db,$id,$r->password));$service=new App\Application\Academic\Commands\ActivityDelivery($db,new App\Infrastructure\Persistence\Academic\LocalMaterialStorage(dirname(__DIR__,2).'/.local/eval-dev/deliveries'));$service->write($actor,'submit',$activity,['answer'=>'Concurrent verified answer']);echo 'COMMITTED';}catch(Throwable){fwrite(STDERR,'Activity race worker failed');exit(2);}

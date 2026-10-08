@@ -5,4 +5,11 @@ import { navigationCases } from '../.test-build/features/academic-foundation/nav
 import { directoryCases } from '../.test-build/features/academic-foundation/directory.test.js';
 import { courseCases } from '../.test-build/features/academic-foundation/courses.test.js';
 import { materialCases } from '../.test-build/features/academic-foundation/materials.test.js';
-for (const [name, run] of [...cases,...uiCases,...navigationCases,...directoryCases,...courseCases,...materialCases]) test(name, run);
+import { enrollmentCases } from '../.test-build/features/academic-foundation/enrollments.test.js';
+import { assignmentCases } from '../.test-build/features/academic-foundation/assignments.test.js';
+import { accountCases } from '../.test-build/features/academic-foundation/accounts.test.js';
+import { activityCases } from '../.test-build/features/academic-foundation/activities.test.js';
+import { assessmentCases } from '../.test-build/features/academic-foundation/assessments.test.js';
+import { reportCases } from '../.test-build/features/academic-foundation/reports.test.js';
+import { notificationCases } from '../.test-build/features/academic-foundation/notifications.test.js';
+for (const [name, run] of [...cases,...uiCases,...navigationCases,...directoryCases,...courseCases,...materialCases,...enrollmentCases,...assignmentCases,...accountCases,...activityCases,...assessmentCases,...reportCases,...notificationCases]) test(name, run);
