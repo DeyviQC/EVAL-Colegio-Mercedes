@@ -278,3 +278,7 @@ The human approved A/B/C in docs/u7-human-decisions.md before U7 code: active-pa
 ## Verified U7 handoff (2026-10-07)
 
 Tasks 5.1/5.2 are complete at the isolated command boundary: 26 tests / 341 assertions on MySQL 8.4.9 eval_u7_test. See docs/u7-readiness.md and docs/u7-verification.md for planning without authority, actual-K manual activation/closure, inclusive reservations, retained history, permissions/rollback and four real command races. Eight suites total 212 tests / 1,875 assertions, all passing. Gates 1.2-1.8 remain open; U8 replacement mapping awaits human review in docs/u8-pending-decisions.md. No persisted activity/submission, public HTTP/browser/LAN/load acceptance, deferred capability, apply or remote Git operation is claimed.
+
+## Approved U8 mapping (2026-10-07)
+
+The human delegated selection between the concrete replacement options; recommended option 1 is selected in docs/u8-human-decisions.md before U8 code. Tasks 5.3/5.4 use school-local today only, contained active parent, shared actual K, immutable prior/successor identity and unique lineage, guarded refreshed conflicts/authorization and mutation-free invalid-date/non-current denials. This supersedes earlier U8-specific pending mapping statements, not global gate checkboxes. Tests/implementation are still required before completing 5.3/5.4; later persisted reference assertions remain 7.5.

@@ -19,3 +19,7 @@ Accept a human-declared DATE with prior declared start <= DATE <= server America
 Advantages: supports immediate corrections of declared replacement date and state-active calendar-past administration without inventing a future scheduler. Disadvantages: declaration differs from real operational moment and needs explicit UI explanation/audit, more validation examples. Impact: explicit human amendment of assignment replacement requirements/design/tasks, DATE validation and actual-K pair tests before code, no migration/ledger replay or reassignment of existing work. This must be approved as replacement-specific policy, not copied from administrative closure.
 
 Neither option authorizes U9 or deferred capabilities. Upon selection, record approval before code, implement only bounded U8, prove conflicts/lineage/rollback/races, then hand off a verified local commit. Until selection, tasks 5.3/5.4 and relevant gate questions remain pending.
+
+## Subsequent human-delegated selection
+
+On 2026-10-07 the human delegated selection after reviewing the two options. Option 1 is selected before U8 code; see docs/u8-human-decisions.md. The proposals above remain historical evidence, not parallel normative alternatives. OpenSpec records the selected scope; implementation/evidence and global gates remain separate.
