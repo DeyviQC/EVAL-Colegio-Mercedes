@@ -1,0 +1,11 @@
+# U7 Scoped Readiness
+
+Date: 2026-10-07. Normative predecessor: 1f448ddb919a74caeae1db88db5473c9620c2f7e; U6: 731a398246b07c9fd17e862ee362b8bd5f556d88.
+
+The human approved A/B/C before code, recorded in docs/u7-human-decisions.md and OpenSpec. U7 is tasks 5.1/5.2 only: planned creation, manual activation, administrative closure, scoped conflict query and evidence. U8 replacement and U9 general supporting/history/HTTP policies remain separate. No deferred capability or accepted-submission table is added.
+
+Applicable dependencies: approved 1.1; reviewed planned/actual-key model and closure mapping for 1.2; unchanged assignment containment versus no enrollment containment for 1.3; active-parent activation/operative work with planned-parent planning and closed-parent cleanup retained for 1.4; approved active catalog/equality from U4 for 1.5; retained BIGINT identity, verified authentication/credential revision and fresh Director/Administrator or Vice Principal grants for 1.6; isolated eval_u7_test with real MySQL/races/permissions for 1.7; verified U3 maximum three confirmed-rollback attempts, no uncertain replay and scoped local handoffs for 1.8. Global gate checkboxes remain open.
+
+Creation produces a planned row with null operational keys. Closed historical ends <= prospective K precede any new manual authority; active/planned reservations use inclusive declared dates/open horizon. Activation requires active requested parent, server school-local day >= declared start, valid active scope and no actual occupied interval/other planned reservation conflict. Disjoint plans never guarantee activation while another interval is actually open. Closure preserves a valid contained past/current declared end and ends actual authority at K, including closed-parent/inactive-catalog cleanup. Credentials/roles never replace permanent teacher identity.
+
+Only these verified commands may complete 5.1/5.2. No current-period substitution, scheduling, midnight/date key guessing, historical owner rewriting or automatic state expiry is introduced. Persisted activity/submission references and deployed UI/LAN acceptance remain later evidence. Non-current teacher replacement date mapping stays pending until U8 review.
