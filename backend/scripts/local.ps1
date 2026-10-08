@@ -1,7 +1,7 @@
 param(
     [ValidateSet('php', 'composer', 'test', 'db-smoke', 'migrate')][string]$Command = 'php',
     [ValidateSet('runtime', 'migration')][string]$Role = 'runtime',
-    [ValidateSet('U1', 'U2', 'U3', 'Auth')][string]$Unit = 'U1',
+    [ValidateSet('U1', 'U2', 'U3', 'U4', 'Auth')][string]$Unit = 'U1',
     [Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments
 )
 $ErrorActionPreference = 'Stop'
