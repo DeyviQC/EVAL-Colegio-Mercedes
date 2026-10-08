@@ -1,0 +1,10 @@
+{
+  "name": "eval-academic-contracts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "tsc && node --test --test-isolation=none tests/contracts.runner.mjs"
+  },
+  "devDependencies": { "typescript": "7.0.2" }
+}
