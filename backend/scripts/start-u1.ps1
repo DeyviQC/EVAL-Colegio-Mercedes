@@ -1,4 +1,4 @@
-param([switch]$ConfigureRuntime, [ValidateSet('U1','U2','U3','U4','U5','U6','U7', 'U8','U9','Auth')][string]$Unit = 'U1')
+param([switch]$ConfigureRuntime, [ValidateSet('U1','U2','U3','U4','U5','U6','U7', 'U8','U9','U10','Auth')][string]$Unit = 'U1')
 $ErrorActionPreference = 'Stop'
 $evalRoot = [IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA 'Temp\opencode\eval-u1'))
 $evalStatePath = Join-Path $evalRoot 'database-state.json'
