@@ -6,9 +6,24 @@ use Tests\Support\FixtureAcademicReferences;
 use App\Application\Academic\Authorization\AcademicAuthorization;
 use App\Application\Academic\Queries\OwnHistoricalSubmissionQuery;
 use App\Application\Academic\Queries\AcademicIdentityLabels;
-final class HistoricalAcademicReadTest extends AssignmentTestCase
+class HistoricalAcademicReadTest extends AssignmentTestCase
 {
     protected const DATABASE='eval_u9_test';
+    public function testPersistedStudentHistoryRetainsOriginalContextAfterCleanup():void
+    {
+        if(static::DATABASE!=='eval_u11_test'){$this->markTestSkipped('Persisted reference integration runs in U11 only.');}
+        $student=$this->actor('student');$teacher=$this->actor('teacher');$assignment=$this->assignment(['teacher_id'=>$teacher->identityId]);
+        $this->assignments->activate($this->actor,$assignment);$enrollment=$this->enrollment(['student_id'=>$student->identityId]);
+        $activity=(new \App\Application\Academic\Commands\CreateActivityReference($this->db))->execute($teacher,['assignment_id'=>$assignment]);
+        $submission=(new \App\Application\Academic\Commands\AcceptSubmissionReference($this->db))->execute($student,['activity_id'=>$activity]);
+        $this->periods->close($this->actor,$this->period);$this->commands->close($this->actor,$enrollment,$this->today());$this->assignments->close($this->actor,$assignment,$this->today());
+        $reader=new \App\Infrastructure\Persistence\Academic\PersistedAcademicReferences($this->db);$policy=new AcademicAuthorization($this->db,$reader);
+        $labels=new class implements AcademicIdentityLabels {public function displayName(string $id):?string{return 'Synthetic teacher';}};
+        $query=new OwnHistoricalSubmissionQuery($this->db,$policy,$reader,$labels);$view=$query->get($student,$submission);
+        $this->assertSame($assignment,$view['originalTeachingAssignment']['id']);$this->assertSame($enrollment,$view['acceptedUnderEnrollment']['id']);
+        $this->assignmentDenied('not_found',fn()=>$query->get($this->actor('student'),$submission));
+        $this->assertTrue($policy->allows($teacher,'submission.read',['submission_id'=>$submission]));
+    }
     public function testOwnClosedPeriodEnvelopeRetainsOriginalRouteAndEnrollmentContext():void
     {
         $student=$this->actor('student');$id=$this->assignment();$this->assignments->activate($this->actor,$id);

@@ -13,15 +13,16 @@ if (getenv('EVAL_DB_ROLE') !== 'migration') {
 $path = dirname(__DIR__).'/database/migrations';
 $file = $path.'/2026_10_07_000001_create_academic_write_guard.php';
 $files = [$file];
-if (in_array(getenv('EVAL_UNIT'), ['U2','U3','U4','U5','U6','U7', 'U8','U9','U10','Auth'],true)) {
+if (in_array(getenv('EVAL_UNIT'), ['U2','U3','U4','U5','U6','U7', 'U8','U9','U10','U11','Auth'],true)) {
     foreach (['000002_create_academic_periods_and_catalog', '000003_create_student_enrollments', '000004_create_teaching_assignments'] as $name) {
         $files[] = $path.'/2026_10_07_'.$name.'.php';
     }
 }
-if (in_array(getenv('EVAL_UNIT'),['U3','U4','U5','U6','U7', 'U8','U9','U10','Auth'],true)) { $files[]=$path.'/2026_10_07_000005_create_academic_lifecycle_events.php'; }
-if (in_array(getenv('EVAL_UNIT'),['U4','U5','U6','U7', 'U8','U9','U10','Auth'],true)) { $files[]=$path.'/2026_10_07_000006_create_local_authentication.php'; }
-$freshFlags=array_values(array_intersect($argv,['--fresh-u1','--fresh-u2','--fresh-u3','--fresh-u4','--fresh-u5','--fresh-u6','--fresh-u7','--fresh-u8','--fresh-u9','--fresh-u10','--fresh-auth']));
-if (getenv('EVAL_UNIT')==='U10') {$files[]=$path.'/2026_10_07_000007_create_activity_references.php';}
+if (in_array(getenv('EVAL_UNIT'),['U3','U4','U5','U6','U7', 'U8','U9','U10','U11','Auth'],true)) { $files[]=$path.'/2026_10_07_000005_create_academic_lifecycle_events.php'; }
+if (in_array(getenv('EVAL_UNIT'),['U4','U5','U6','U7', 'U8','U9','U10','U11','Auth'],true)) { $files[]=$path.'/2026_10_07_000006_create_local_authentication.php'; }
+$freshFlags=array_values(array_intersect($argv,['--fresh-u1','--fresh-u2','--fresh-u3','--fresh-u4','--fresh-u5','--fresh-u6','--fresh-u7','--fresh-u8','--fresh-u9','--fresh-u10','--fresh-u11','--fresh-auth']));
+if (in_array(getenv('EVAL_UNIT'),['U10','U11'],true)) {$files[]=$path.'/2026_10_07_000007_create_activity_references.php';}
+if (getenv('EVAL_UNIT')==='U11') {$files[]=$path.'/2026_10_07_000008_create_submission_references.php';}
 if (count($freshFlags)>1) { throw new RuntimeException('Select exactly one disposable unit rebuild.'); }
 if ($freshFlags) {
     $freshUnit=$freshFlags[0]==='--fresh-auth'?'Auth':strtoupper(substr($freshFlags[0],8));

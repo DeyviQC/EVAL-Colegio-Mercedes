@@ -8,9 +8,22 @@ use Illuminate\Encryption\Encrypter;
 use Illuminate\Hashing\BcryptHasher;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-final class AcademicPolicyHttpTest extends AssignmentTestCase
+class AcademicPolicyHttpTest extends AssignmentTestCase
 {
     protected const DATABASE='eval_u9_test';
+    public function testPersistedSubmissionHttpRoleMatrixAfterPeriodClosure():void
+    {
+        if(static::DATABASE!=='eval_u11_test'){$this->markTestSkipped('Persisted reference integration runs in U11 only.');}
+        $assignment=$this->assignment(['teacher_id'=>$this->actor->identityId]);$this->assignments->activate($this->actor,$assignment);
+        $this->enrollment(['student_id'=>$this->actor->identityId]);$this->role('teacher');
+        $activity=(new \App\Application\Academic\Commands\CreateActivityReference($this->db))->execute($this->actor,['assignment_id'=>$assignment]);
+        $this->role('student');$submission=(new \App\Application\Academic\Commands\AcceptSubmissionReference($this->db))->execute($this->actor,['activity_id'=>$activity]);
+        $this->role('director_admin');$this->periods->close($this->actor,$this->period);
+        $labels=new class implements \App\Application\Academic\Queries\AcademicIdentityLabels {public function displayName(string $id):?string{return 'Synthetic teacher';}};
+        $this->compose(new FoundationController($this->db,new \App\Infrastructure\Persistence\Academic\PersistedAcademicReferences($this->db),$labels));$this->login();
+        foreach(['director_admin','teacher','student'] as $role){$this->role($role);$this->assertSame(200,$this->request('/academic/submissions/'.$submission)->getStatusCode());}
+        $this->role('vice_principal');$this->deniedHttp(404,fn()=>$this->request('/academic/submissions/'.$submission));
+    }
     private \Closure $app;
     private LocalSessionAuthentication $authentication;
     private ?string $cookie=null;

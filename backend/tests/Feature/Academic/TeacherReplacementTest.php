@@ -4,9 +4,23 @@ namespace Tests\Feature\Academic;
 use Tests\Support\ReplacementTestCase;
 use App\Application\Academic\Commands\ReplaceTeacher;
 
-final class TeacherReplacementTest extends ReplacementTestCase
+class TeacherReplacementTest extends ReplacementTestCase
 {
     protected const DATABASE='eval_u8_test';
+    public function testPersistedOriginalTeacherKeepsAcceptedHistoryAfterReplacement():void
+    {
+        if(static::DATABASE!=='eval_u11_test'){$this->markTestSkipped('Persisted reference integration runs in U11 only.');}
+        $teacher=$this->actor('teacher');$student=$this->actor('student');$this->prior=$this->assignment(['teacher_id'=>$teacher->identityId]);
+        $this->assignments->activate($this->actor,$this->prior);$this->enrollment(['student_id'=>$student->identityId]);
+        $activity=(new \App\Application\Academic\Commands\CreateActivityReference($this->db))->execute($teacher,['assignment_id'=>$this->prior]);
+        $submission=(new \App\Application\Academic\Commands\AcceptSubmissionReference($this->db))->execute($student,['activity_id'=>$activity]);
+        $next=$this->actor('teacher');$this->nextTeacher=$next->identityId;$result=$this->replace();$this->periods->close($this->actor,$this->period);
+        $reader=new \App\Infrastructure\Persistence\Academic\PersistedAcademicReferences($this->db);$policy=new \App\Application\Academic\Authorization\AcademicAuthorization($this->db,$reader);
+        $this->assertSame($this->prior,$reader->submission($submission)['teaching_assignment_id']);
+        $this->assertNotSame($result['successor_id'],$reader->submission($submission)['teaching_assignment_id']);
+        $this->assertTrue($policy->allows($teacher,'submission.read',['submission_id'=>$submission]));
+        $this->assertFalse($policy->allows($next,'submission.read',['submission_id'=>$submission]));
+    }
     private ReplaceTeacher $replacement;
     private string $prior;
     private string $nextTeacher;
