@@ -5,11 +5,11 @@ export class AcademicApiError extends Error {
 }
 /** Same-origin local session transport. No role/actor, caching, optimistic mutation or automatic replay. */
 export function createAcademicClient(transport:typeof fetch,csrf:()=>string) {
-  async function request<T>(path:string,decode:(value:unknown)=>T,body?:unknown):Promise<T> {
+  async function request<T>(path:string,decode:(value:unknown)=>T,body?:unknown,method?:'PATCH'):Promise<T> {
     const unsafe=body!==undefined; const headers:Record<string,string>={Accept:'application/json'};
     if(unsafe) { headers['Content-Type']='application/json'; headers['X-CSRF-TOKEN']=text(csrf()); }
     let response:Response;
-    try { response=await transport('/academic/'+path,{method:unsafe?'POST':'GET',credentials:'same-origin',cache:'no-store',redirect:'error',headers,...(unsafe?{body:JSON.stringify(body)}:{})}); }
+    try { response=await transport('/academic/'+path,{method:method??(unsafe?'POST':'GET'),credentials:'same-origin',cache:'no-store',redirect:'error',headers,...(unsafe?{body:JSON.stringify(body)}:{})}); }
     catch { throw new AcademicApiError('transport_unavailable',null,null,unsafe); }
     let wire:unknown;
     try { wire=await response.json(); } catch { throw new AcademicApiError('invalid_response',response.status,null,unsafe); }
@@ -27,6 +27,21 @@ export function createAcademicClient(transport:typeof fetch,csrf:()=>string) {
   }
   const locator=decimalId;
   return {
+    directory:<T>(path:'periods'|'catalog/entry'|'catalog/grade'|'catalog/section',decode:(value:unknown)=>T,after:string|null=null)=>request(path+(after===null?'':'?after='+locator(after)),decode),
+    createPeriod:(input:{name:string;start_on:string;end_on:string})=>{const row=exact(input,['name','start_on','end_on']);return request('periods',identityResult,{name:text(row.name),start_on:date(row.start_on),end_on:date(row.end_on)});},
+    transitionPeriod:(id:string,action:'activate'|'close')=>{if(!['activate','close'].includes(action))throw new Error('Invalid action');return request('periods/'+locator(id)+'/'+action,identityResult,{});},
+    createCatalog:(kind:'entry'|'grade'|'section',input:Record<string,unknown>)=>{
+      if(!['entry','grade','section'].includes(kind))throw new Error('Invalid kind');
+      const row=exact(input,['name',...(kind==='entry'?['kind']:kind==='section'?['grade_id']:[])],['is_active']);
+      text(row.name);if(kind==='entry'&&!['subject','area'].includes(row.kind as string))throw new Error('Invalid kind');
+      if(kind==='section')locator(row.grade_id);if(row.is_active!==undefined&&typeof row.is_active!=='boolean')throw new Error('Invalid active flag');
+      return request('catalog/'+kind,identityResult,row);
+    },
+    updateCatalog:(kind:'entry'|'grade'|'section',id:string,input:{name?:string;is_active?:boolean})=>{
+      if(!['entry','grade','section'].includes(kind))throw new Error('Invalid kind');const row=exact(input,[],['name','is_active']);
+      if(!Object.keys(row).length)throw new Error('Empty update');if(row.name!==undefined)text(row.name);
+      if(row.is_active!==undefined&&typeof row.is_active!=='boolean')throw new Error('Invalid active flag');return request('catalog/'+kind+'/'+locator(id),identityResult,row,'PATCH');
+    },
     period:(id:string)=>request('periods/'+locator(id),period),
     enrollment:(id:string)=>request('enrollments/'+locator(id),enrollment),
     assignment:(id:string)=>request('assignments/'+locator(id),assignment),

@@ -8,6 +8,27 @@ use Symfony\Component\HttpFoundation\Response;
 /** In-process approved role journeys, not a browser/network/outage test. */
 final class LocalAcademicOperationTest extends SubmissionReferenceTestCase
 {
+    public function testDirectorDirectoriesAreBoundedRetainedAndRoleRestricted():void
+    {
+        $controller=new \App\Http\Controllers\Academic\FoundationController($this->db);
+        $query=new \App\Application\Academic\Queries\FoundationDirectoryQuery($this->db);
+        $commands=new \App\Application\Academic\Commands\AcademicPeriodCommands($this->db);
+        $before=(string)$this->db->table('academic_periods')->max('id');
+        for($i=0;$i<51;$i++)$commands->create($this->actor,['name'=>'Directory '.$this->suffix.' '.$i,'start_on'=>'2026-01-01','end_on'=>'2026-12-31']);
+        $page=$query->page($this->actor,'period',$before);$this->assertCount(50,$page['items']);$this->assertSame($page['items'][49]['id'],$page['next_after']);
+        $next=$query->page($this->actor,'period',$page['next_after']);$this->assertCount(1,$next['items']);$this->assertNull($next['next_after']);
+        $this->assertSame(['id','name','start_on','end_on','state'],array_keys($page['items'][0]));
+        $inactive=$this->catalog->create($this->actor,'grade',['name'=>'Inactive '.$this->suffix,'is_active'=>false]);
+        $grades=$query->page($this->actor,'grade',(string)((int)$inactive-1))['items'];$row=array_values(array_filter($grades,fn($row)=>$row['id']===$inactive))[0];$this->assertFalse($row['is_active']);
+        foreach(['vice_principal','teacher','student'] as $role){$actor=$this->actor($role);
+            foreach(['/academic/periods','/academic/catalog/entry','/academic/catalog/grade','/academic/catalog/section'] as $path){
+                $this->assertSame(403,$controller->handle(\Symfony\Component\HttpFoundation\Request::create('https://eval.test'.$path),$actor)->getStatusCode());
+            }
+        }
+        foreach(['?after=0','?after[]=1','?role=director_admin'] as $suffix)$this->assertSame(422,$controller->handle(\Symfony\Component\HttpFoundation\Request::create('https://eval.test/academic/periods'.$suffix),$this->actor)->getStatusCode());
+        $this->assertSame(401,$controller->handle(\Symfony\Component\HttpFoundation\Request::create('https://eval.test/academic/periods'),null)->getStatusCode());
+        $this->assertSame(200,$controller->handle(\Symfony\Component\HttpFoundation\Request::create('https://eval.test/academic/catalog/section'),$this->actor)->getStatusCode());
+    }
     public function testNavigationUsesPersistedRolesAndExactTransport():void
     {
         $controller=new \App\Http\Controllers\Academic\FoundationController($this->db);

@@ -39,6 +39,16 @@ final class LocalHttpsRuntimeTest extends SubmissionReferenceTestCase
     }
     private function freePort():int
     {$socket=stream_socket_server('tcp://127.0.0.1:0',$code,$message);$this->assertIsResource($socket);$port=(int)substr(strrchr(stream_socket_get_name($socket,false),':'),1);fclose($socket);return $port;}
+    public function testExplicitTemporaryHumanPreview():void
+    {
+        if(getenv('EVAL_HUMAN_PREVIEW')!=='1')$this->markTestSkipped('Explicit human preview only.');
+        $password='EVAL-demo-local-2026';
+        $this->migration->table('local_credentials')->where('id',$this->actor->identityId)->update(['password'=>(new BcryptHasher(['rounds'=>4]))->make($password)]);
+        fwrite(STDOUT,"PREVIEW_URL=".$this->origin."\nPREVIEW_LOGIN=fixture-".$this->actor->identityId."\n");
+        // Human-requested disposable preview; owned workers terminate in teardown.
+        $deadline=microtime(true)+1800;while(microtime(true)<$deadline&&!is_file($this->directory.'/stop'))usleep(250000);
+        $this->assertTrue(true);
+    }
     public function testApprovedBrowserSessionAndCertificateBoundary():void
     {
         if(getenv('EVAL_RUN_BROWSER')!=='1')$this->markTestSkipped('Explicit browser invocation required.');
@@ -60,6 +70,7 @@ final class LocalHttpsRuntimeTest extends SubmissionReferenceTestCase
         }
         $environment['EVAL_BROWSER_ACCOUNTS']=json_encode($accounts,JSON_THROW_ON_ERROR);
         $environment['EVAL_BROWSER_DENIED_ENROLLMENT']=$this->enrollmentId;
+        $environment['EVAL_BROWSER_ACTIVE_PERIOD']=$this->period;
         $worker=proc_open(['node',$frontend.'/node_modules/playwright/cli.js','test'],
             [0=>['file','NUL','r'],1=>['file',$this->directory.'/browser.out','w'],2=>['file',$this->directory.'/browser.err','w']],$pipes,$frontend,$environment);
         $this->assertIsResource($worker);$this->workers[]=$worker;$deadline=microtime(true)+120;
@@ -69,7 +80,7 @@ final class LocalHttpsRuntimeTest extends SubmissionReferenceTestCase
         foreach($accounts as $account)$diagnostics=str_replace([$account['password'],$account['login']],['[redacted]','[fixture]'],$diagnostics);
         $this->assertSame(0,$status['exitcode'],'Browser suite failed: '.$diagnostics);
         $output=(string)file_get_contents($this->directory.'/browser.out');
-        $this->assertStringContainsString('6 passed',$output);fwrite(STDOUT,"Browser suite: 6 passed (actual Chromium HTTPS roles, DOM and certificate probes).\n");
+        $this->assertStringContainsString('8 passed',$output);fwrite(STDOUT,"Browser suite: 8 passed (actual Chromium HTTPS roles, Phase A and certificate probes).\n");
     }
     private function start(array $command,array $environment,string $name):void
     {

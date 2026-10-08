@@ -32,8 +32,15 @@ final class FoundationController
         try{
             if(!$actor){throw new AcademicCommandFailure('unauthenticated');}
             $authorization=new AcademicAuthorization($this->db,$this->references);$policy=new AcademicPolicy($authorization);
-            if($request->query->all()){throw new AcademicCommandFailure('invalid_input');}
             $path=$request->getPathInfo();$method=$request->getMethod();$input=$this->input($request);
+            $directory=$method==='GET' && ($path==='/academic/periods'||preg_match('#^/academic/catalog/(entry|grade|section)$#',$path));
+            if($directory){
+                FoundationCommandChecks::fields($input,[]);FoundationCommandChecks::fields($request->query->all(),['after']);
+                $after=$request->query->all()['after']??null;if($after!==null&&!is_string($after))throw new AcademicCommandFailure('invalid_input');
+                $kind=$path==='/academic/periods'?'period':basename($path);
+                return $this->ok((new \App\Application\Academic\Queries\FoundationDirectoryQuery($this->db))->page($actor,$kind,$after));
+            }
+            if($request->query->all()){throw new AcademicCommandFailure('invalid_input');}
             if($method==='GET'){
                 FoundationCommandChecks::fields($input,[]);
                 if($path==='/academic/navigation'){
