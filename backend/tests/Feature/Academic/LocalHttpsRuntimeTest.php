@@ -51,16 +51,25 @@ final class LocalHttpsRuntimeTest extends SubmissionReferenceTestCase
         $environment=array_intersect_key(getenv(),array_flip(['PATH','Path','SystemRoot','TEMP','TMP','LOCALAPPDATA','PLAYWRIGHT_BROWSERS_PATH']));
         $environment['EVAL_UI_URL']=$this->origin;$environment['EVAL_TLS_SPKI']=base64_encode(hash('sha256',$der,true));
         $environment['EVAL_BROWSER_LOGIN']='fixture-'.$this->actor->identityId;$environment['EVAL_BROWSER_PASSWORD']=$password;
+        $accounts=[];
+        foreach(['director_admin','vice_principal','teacher','student'] as $role){
+            $actor=$role==='director_admin'?$this->actor:$this->actor($role);$secret=bin2hex(random_bytes(16));
+            $this->migration->table('local_credentials')->where('id',$actor->identityId)->update(['password'=>(new BcryptHasher(['rounds'=>4]))->make($secret)]);
+            $accounts[]=['role'=>$role,'login'=>'fixture-'.$actor->identityId,'password'=>$secret];
+            if($role==='director_admin'){$environment['EVAL_BROWSER_PASSWORD']=$secret;}
+        }
+        $environment['EVAL_BROWSER_ACCOUNTS']=json_encode($accounts,JSON_THROW_ON_ERROR);
+        $environment['EVAL_BROWSER_DENIED_ENROLLMENT']=$this->enrollmentId;
         $worker=proc_open(['node',$frontend.'/node_modules/playwright/cli.js','test'],
             [0=>['file','NUL','r'],1=>['file',$this->directory.'/browser.out','w'],2=>['file',$this->directory.'/browser.err','w']],$pipes,$frontend,$environment);
         $this->assertIsResource($worker);$this->workers[]=$worker;$deadline=microtime(true)+120;
         do{$status=proc_get_status($worker);if($status['running'])usleep(100000);}while($status['running']&&microtime(true)<$deadline);
         $this->assertFalse($status['running'],'Owned browser runner exceeded its deadline.');
         $diagnostics=(string)file_get_contents($this->directory.'/browser.out').(string)file_get_contents($this->directory.'/browser.err');
-        $diagnostics=str_replace([$password,$environment['EVAL_BROWSER_LOGIN']],['[redacted]','[fixture]'],$diagnostics);
+        foreach($accounts as $account)$diagnostics=str_replace([$account['password'],$account['login']],['[redacted]','[fixture]'],$diagnostics);
         $this->assertSame(0,$status['exitcode'],'Browser suite failed: '.$diagnostics);
         $output=(string)file_get_contents($this->directory.'/browser.out');
-        $this->assertStringContainsString('5 passed',$output);fwrite(STDOUT,"Browser suite: 5 passed (actual Chromium HTTPS DOM and certificate probes).\n");
+        $this->assertStringContainsString('6 passed',$output);fwrite(STDOUT,"Browser suite: 6 passed (actual Chromium HTTPS roles, DOM and certificate probes).\n");
     }
     private function start(array $command,array $environment,string $name):void
     {

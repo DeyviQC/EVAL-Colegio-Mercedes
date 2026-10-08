@@ -8,6 +8,39 @@ use Symfony\Component\HttpFoundation\Response;
 /** In-process approved role journeys, not a browser/network/outage test. */
 final class LocalAcademicOperationTest extends SubmissionReferenceTestCase
 {
+    public function testNavigationUsesPersistedRolesAndExactTransport():void
+    {
+        $controller=new \App\Http\Controllers\Academic\FoundationController($this->db);
+        $request=\Symfony\Component\HttpFoundation\Request::create('https://eval.test/academic/navigation');
+        $this->assertSame(401,$controller->handle($request,null)->getStatusCode());
+        foreach(['director_admin'=>['periods','catalog','enrollments','assignments'],'vice_principal'=>['assignments'],
+            'teacher'=>['my_assignments'],'student'=>['my_enrollments']] as $role=>$expected){
+            $actor=$this->actor($role);$query=new \App\Application\Academic\Queries\AcademicNavigationQuery($this->db);
+            $this->assertSame(['sections'=>$expected],$query->get($actor));
+            $forged=new AuthenticatedActor($actor->identityId,['director_admin'],$actor->credentialRevision());
+            $this->assertSame(['sections'=>$expected],$query->get($forged));
+            $this->assertSame(['sections'=>$expected],$this->data($controller->handle($request,$actor)));
+        }
+        $actor=$this->actor('teacher');$query=new \App\Application\Academic\Queries\AcademicNavigationQuery($this->db);
+        $this->migration->table('local_role_grants')->insert(['identity_id'=>$actor->identityId,'role'=>'student']);
+        $this->assertSame(['sections'=>['my_assignments','my_enrollments']],$query->get($actor));
+        $this->migration->table('local_role_grants')->where('identity_id',$actor->identityId)->delete();
+        $this->assertSame(['sections'=>[]],$query->get($actor));
+        $bad=\Symfony\Component\HttpFoundation\Request::create('https://eval.test/academic/navigation?role=director_admin');
+        $this->assertSame(422,$controller->handle($bad,$actor)->getStatusCode());
+        $bad=\Symfony\Component\HttpFoundation\Request::create('https://eval.test/academic/navigation','GET',[],[],[],[], '{"role":"director_admin"}');
+        $this->assertSame(422,$controller->handle($bad,$actor)->getStatusCode());
+        $this->migration->table('retained_identities')->where('id',$actor->identityId)->update(['credential_status'=>'deactivated']);
+        $this->assertSame(403,$controller->handle($request,$actor)->getStatusCode());
+        $this->assertSame(403,$controller->handle($request,new AuthenticatedActor($this->actor->identityId,[],str_repeat('0',64)))->getStatusCode());
+        $broken=$this->createMock(\Illuminate\Database\Connection::class);
+        $broken->expects($this->once())->method('table')->willThrowException(new \Illuminate\Database\QueryException('isolated','SELECT private_fixture',[],new \PDOException('Injected')));
+        $failure=(new \App\Http\Controllers\Academic\FoundationController($broken))->handle($request,$this->actor);
+        $this->assertSame(503,$failure->getStatusCode());$body=json_decode($failure->getContent(),true);
+        $this->assertSame('database_unavailable',$body['error']);$this->assertFalse($body['automatic_retry']);
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{32}$/',$body['correlation_id']);
+        $this->assertStringNotContainsString('private_fixture',$failure->getContent());
+    }
     private function session(AuthenticatedActor $actor):\Closure
     {
         $hasher=new \Illuminate\Hashing\BcryptHasher(['rounds'=>4]);$password=bin2hex(random_bytes(16));

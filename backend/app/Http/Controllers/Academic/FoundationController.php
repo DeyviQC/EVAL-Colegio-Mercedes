@@ -36,6 +36,9 @@ final class FoundationController
             $path=$request->getPathInfo();$method=$request->getMethod();$input=$this->input($request);
             if($method==='GET'){
                 FoundationCommandChecks::fields($input,[]);
+                if($path==='/academic/navigation'){
+                    return $this->ok((new \App\Application\Academic\Queries\AcademicNavigationQuery($this->db))->get($actor));
+                }
                 if(preg_match('#^/academic/(periods|enrollments|assignments|submissions|activities)/([0-9]+)$#',$path,$match)){
                     $id=$this->locator($match[2]);$kind=match($match[1]){'periods'=>'period','enrollments'=>'enrollment','assignments'=>'assignment','submissions'=>'submission','activities'=>'activity'};
                     $policy->authorize($actor,$kind.'.read',[$kind.'_id'=>$id],true);

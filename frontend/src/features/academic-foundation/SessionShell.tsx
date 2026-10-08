@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react';
 import { createSessionClient, createSessionController, type SessionView } from './session.js';
+import { createNavigationController, sectionLabels } from './navigation.js';
 export function SessionPanel({view,onLogin,onLogout,onRefresh,children}:{view:SessionView;onLogin:(input:{login:string;password:string})=>Promise<void>;onLogout:()=>Promise<void>;onRefresh:()=>Promise<void>;children?:ReactNode}) {
   const [login,setLogin]=useState('');const [password,setPassword]=useState('');
   const pending=view.phase==='busy'||view.phase==='checking';const authenticated=view.phase==='authenticated';
@@ -21,7 +22,16 @@ export function SessionPanel({view,onLogin,onLogout,onRefresh,children}:{view:Se
 }
 export function SessionShell() {
   const controller=useMemo(()=>createSessionController(createSessionClient()),[]);
+  const navigation=useMemo(()=>createNavigationController(),[]);
+  const context=useSyncExternalStore(navigation.subscribe,navigation.snapshot,navigation.snapshot);
+  const [selected,setSelected]=useState<string|null>(null);
   const view=useSyncExternalStore(controller.subscribe,controller.snapshot,controller.snapshot);
   useEffect(()=>{void controller.refresh();return ()=>controller.invalidate();},[controller]);
-  return <SessionPanel view={view} onLogin={controller.login} onLogout={controller.logout} onRefresh={controller.refresh} />;
+  useEffect(()=>{setSelected(null);if(view.phase==='authenticated')void navigation.refresh();else navigation.clear();return ()=>navigation.clear();},[view.phase,navigation]);
+  return <SessionPanel view={view} onLogin={controller.login} onLogout={controller.logout} onRefresh={controller.refresh} >
+    {context.phase==='loading'&&<p role="status">Consultando secciones…</p>}
+    {context.phase==='unavailable'&&<><p role="alert">No se pudo confirmar la navegación.</p><button onClick={()=>void navigation.refresh()}>Consultar secciones</button></>}
+    {context.phase==='ready'&&<><nav aria-label="Secciones académicas">{context.sections.map(section=><button key={section} className="mr-3 mb-3 rounded-lg border border-eval-teal px-4 py-2" aria-pressed={selected===section} onClick={()=>setSelected(section)}>{sectionLabels[section]}</button>)}</nav>
+      <p>{context.sections.length===0?'No hay secciones habilitadas para esta sesión.':selected?'La consulta de registros de esta sección todavía no está disponible.':'Selecciona una sección disponible.'}</p></>}
+  </SessionPanel>;
 }

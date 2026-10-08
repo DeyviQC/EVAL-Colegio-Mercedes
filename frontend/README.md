@@ -34,4 +34,6 @@ Default SessionShell shows the confirmed session/empty-workspace state. Academic
 
 ## Approved isolated browser execution
 
+The subsequent approved navigation contract connects section buttons to GET /academic/navigation, derived from actual stored role grants. Frontend tests now total 61; browser cases total 6 with four-role section visibility and resource denials. Resource discovery and operation forms remain unconnected; selecting a section states that limitation explicitly. See ../docs/u12-navigation-verification.md. Historical counts and discovery-only statements above describe earlier handoffs.
+
 The later browser handoff executes five HTTPS DOM/certificate cases through the owned U11 PHPUnit harness. See ../docs/u12-browser-verification.md for prerequisites, invocation and exact results. Chromium 156.0.8078.4 is isolated outside source; a per-run SPKI exception is explicitly approved and is not institutional CA trust. No global certificate change or blanket ignoreHTTPSErrors is used. The harness supplies disposable credentials; do not point these tests at institutional data. Task 8.2 remains incomplete.

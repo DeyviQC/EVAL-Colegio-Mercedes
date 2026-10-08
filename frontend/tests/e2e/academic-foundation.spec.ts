@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { sectionLabels } from '../../src/features/academic-foundation/navigation.js';
 function uiUrl():string {
   const url=new URL(process.env.EVAL_UI_URL??'https://invalid.test');
   if(url.protocol!=='https:'||url.hostname!=='127.0.0.1'||!url.port)throw new Error('Approved isolated HTTPS UI/browser trust harness required');
@@ -50,5 +51,26 @@ test('certificate is rejected without a pin and with a different key pin',async(
     try{const page=await browser.newPage({ignoreHTTPSErrors:false});
       await expect(page.goto(uiUrl())).rejects.toThrow(/ERR_CERT_AUTHORITY_INVALID/);
     }finally{await browser.close();}
+  }
+});
+test('four persisted roles expose only their server-owned sections',async({browser})=>{
+  const accounts=JSON.parse(process.env.EVAL_BROWSER_ACCOUNTS??'[]') as {role:string;login:string;password:string}[];
+  expect(accounts).toHaveLength(4);
+  const expected:Record<string,string[]>={director_admin:['periods','catalog','enrollments','assignments'],vice_principal:['assignments'],teacher:['my_assignments'],student:['my_enrollments']};
+  for(const account of accounts){
+    const context=await browser.newContext({ignoreHTTPSErrors:false});
+    try{const page=await context.newPage();await page.goto(uiUrl());
+      await expect(page.getByRole('button',{name:'Ingresar',exact:true})).toBeEnabled();
+      await page.getByLabel('Usuario',{exact:true}).fill(account.login);await page.getByLabel('Contraseña',{exact:true}).fill(account.password);
+      await page.getByRole('button',{name:'Ingresar',exact:true}).click();
+      const nav=page.getByRole('navigation',{name:'Secciones académicas'});await expect(nav).toBeVisible();
+      await expect(nav.getByRole('button')).toHaveText(expected[account.role]!.map(section=>sectionLabels[section as keyof typeof sectionLabels]));
+      if(account.role!=='director_admin'){
+        const response=await page.evaluate(async(id)=>{const result=await fetch('/academic/enrollments/'+id);return result.status;},process.env.EVAL_BROWSER_DENIED_ENROLLMENT);
+        expect(response).toBe(404);
+      }
+      await nav.getByRole('button').first().click();await expect(page.getByText('La consulta de registros de esta sección todavía no está disponible.',{exact:true})).toBeVisible();
+      await page.getByRole('button',{name:'Cerrar sesión',exact:true}).click();await expect(nav).toHaveCount(0);
+    }finally{await context.close();}
   }
 });
