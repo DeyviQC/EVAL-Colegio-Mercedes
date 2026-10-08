@@ -16,8 +16,8 @@ Subsequent human approval authorizes implementation of the bounded milestone and
 ## 2. U1: Minimal identity and real My Courses
 
 - [ ] 2.1 Add test-first profile retention/name resolution and four-role/credential/course-query negatives, multiple-teacher identity, transfer/replacement and reviewed historical discovery scenarios.
-- [ ] 2.2 Implement only restricted retained visible-name profiles, provider and minimal course collection/detail queries after 1.1-1.3/1.6. No login-as-name, SIAGIE source, public profile API or account administration.
-- [ ] 2.3 Connect real teacher/student course cards and detail context with session clearing, empty/loading/error states; retain UI scope as presentation only. Prove the course bridge end-to-end, run foundation regressions and record a green local handoff before U2.
+- [x] 2.2 Implement only restricted retained visible-name profiles, provider and minimal course collection/detail queries after 1.1-1.3/1.6. No login-as-name, SIAGIE source, public profile API or account administration.
+- [x] 2.3 Connect real teacher/student course cards and detail context with session clearing, empty/loading/error states; retain UI scope as presentation only. Prove the course bridge end-to-end, run foundation regressions and record a green local handoff before U2.
 
 ## 3. U2: Consistent publication and protected consultation
 
@@ -55,3 +55,9 @@ These are forecasts, not authorization or progress measures. Under a 400-line th
 ## Recorded deferred product backlog
 
 Material edit, attachment replacement and withdrawal/deletion remain required future lifecycle work. Units/sessions need a separate structure decision. Vice Principal material review and private observations need their own rule set; direct publication does not imply pre-approval. Director material intervention remains undefined. Activities/submissions, evaluation, library/search, presentation and synchronization are not simultaneous implementation units in this change.
+
+## U1 implementation receipt
+
+Real profile/My Courses bridge: 2.2/2.3 verified for own teacher contexts and student operative scope. Additive retained_identity_profiles migration ran only on isolated eval_u11_test; runtime is read-only on profiles, provisioning uses migration identity. Missing names fail closed. No student general-assignment permission is expanded. Publication-time historical material discovery and successor material consultation remain U2; 2.1 stays open for those cases. No global foundation gate closure.
+
+Verification: frontend 70 tests/typecheck/build pass; U11 80 tests / 1,556 assertions, zero failures/errors and one intentional optional-preview skip; embedded Chromium 9 passed including two independently authenticated teacher/student sessions opening the actual stored course. MySQL 8.4.9 / PHP 8.4.26. Run frontend npm test/build and the explicit browser U11 invocation recorded in docs/u12-browser-verification.md. Publication UI remains explicitly unavailable; milestone is not complete. U2 forecast remains 550-900 changed lines; size approval is required under the applicable 400-line review threshold before that coherent unit begins.

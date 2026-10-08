@@ -8,6 +8,31 @@ use Symfony\Component\HttpFoundation\Response;
 /** In-process approved role journeys, not a browser/network/outage test. */
 final class LocalAcademicOperationTest extends SubmissionReferenceTestCase
 {
+    public function testRealCourseBridgeAndRetainedNames():void
+    {
+        $labels=new \App\Infrastructure\Persistence\Academic\LocalIdentityLabels($this->db);
+        $query=new \App\Application\Academic\Queries\MyCoursesQuery($this->db,$labels);
+        $controller=new \App\Http\Controllers\Academic\FoundationController($this->db);
+        $request=\Symfony\Component\HttpFoundation\Request::create('https://eval.test/academic/my-courses');
+        $this->assertSame(401,$controller->handle($request,null)->getStatusCode());
+        $this->assertSame(403,$controller->handle($request,$this->actor)->getStatusCode());
+        $this->assertNull($labels->displayName($this->teacherActor->identityId));
+        $this->assertSame(503,$controller->handle($request,$this->studentActor)->getStatusCode());
+        $this->migration->table('retained_identity_profiles')->insert(['identity_id'=>$this->teacherActor->identityId,'display_name'=>'Synthetic teacher']);
+        $this->assertSame('Synthetic teacher',$labels->displayName($this->teacherActor->identityId));
+        foreach([$this->teacherActor,$this->studentActor] as $actor){$page=$query->page($actor,null);$this->assertCount(1,$page['items']);
+            $this->assertSame($this->assignmentId,$page['items'][0]['id']);$this->assertSame('Synthetic teacher',$page['items'][0]['teacher']);
+            $this->assertSame($actor===$this->teacherActor,$query->detail($actor,$this->assignmentId)['can_publish']);}
+        $other=$this->actor('teacher');$this->assertSame([],$query->page($other,null)['items']);
+        $this->assertSame(404,$controller->handle(\Symfony\Component\HttpFoundation\Request::create('https://eval.test/academic/my-courses/'.$this->assignmentId),$other)->getStatusCode());
+        foreach(['?actor=1','?after[]=1','?after=0'] as $suffix)$this->assertSame(422,$controller->handle(\Symfony\Component\HttpFoundation\Request::create('https://eval.test/academic/my-courses'.$suffix),$this->studentActor)->getStatusCode());
+        try{$this->db->table('retained_identity_profiles')->insert(['identity_id'=>$other->identityId,'display_name'=>'Forged']);$this->fail('Runtime profile write allowed');}
+        catch(\Illuminate\Database\QueryException){$this->assertTrue(true);}
+        try{$this->migration->table('retained_identities')->where('id',$this->teacherActor->identityId)->delete();$this->fail('Retained identity deleted');}
+        catch(\Illuminate\Database\QueryException){$this->assertSame('Synthetic teacher',$labels->displayName($this->teacherActor->identityId));}
+        $this->periods->close($this->actor,$this->period);$this->assertSame([],$query->page($this->studentActor,null)['items']);
+        $this->assertFalse($query->detail($this->teacherActor,$this->assignmentId)['can_publish']);
+    }
     public function testDirectorDirectoriesAreBoundedRetainedAndRoleRestricted():void
     {
         $controller=new \App\Http\Controllers\Academic\FoundationController($this->db);

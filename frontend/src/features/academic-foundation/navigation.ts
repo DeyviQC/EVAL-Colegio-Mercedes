@@ -1,5 +1,5 @@
 import { exact } from './contracts.js';
-export const sectionLabels={periods:'Períodos académicos',catalog:'Catálogo académico',enrollments:'Matrículas',assignments:'Asignaciones docentes',my_assignments:'Mis asignaciones',my_enrollments:'Mis matrículas'} as const;
+export const sectionLabels={periods:'Períodos académicos',catalog:'Catálogo académico',enrollments:'Estudiantes por aula',assignments:'Organización docente',my_assignments:'Mis cursos',my_enrollments:'Mis cursos'} as const;
 export type Section=keyof typeof sectionLabels;
 const order=Object.keys(sectionLabels) as Section[];
 export function navigationSections(wire:unknown):Section[] {

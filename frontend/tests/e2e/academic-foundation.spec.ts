@@ -71,6 +71,7 @@ test('four persisted roles expose only their server-owned sections',async({brows
       }
       await nav.getByRole('button').first().click();
       if(account.role==='director_admin')await expect(page.getByRole('region',{name:'Gestión de períodos'})).toBeVisible();
+      else if(account.role==='teacher'||account.role==='student')await expect(page.getByRole('region',{name:'Mis cursos',exact:true})).toBeVisible();
       else await expect(page.getByText('La consulta de registros de esta sección todavía no está disponible.',{exact:true})).toBeVisible();
       await page.getByRole('button',{name:'Cerrar sesión',exact:true}).click();await expect(nav).toHaveCount(0);
     }finally{await context.close();}
@@ -81,6 +82,19 @@ async function directorLogin(page:import('@playwright/test').Page){
   await page.getByLabel('Usuario',{exact:true}).fill(process.env.EVAL_BROWSER_LOGIN!);await page.getByLabel('Contraseña',{exact:true}).fill(process.env.EVAL_BROWSER_PASSWORD!);
   await page.getByRole('button',{name:'Ingresar',exact:true}).click();await expect(page.getByRole('navigation',{name:'Secciones académicas'})).toBeVisible();
 }
+test('teacher and student open their actual stored courses',async({browser})=>{
+  const accounts=JSON.parse(process.env.EVAL_BROWSER_ACCOUNTS!) as {role:string;login:string;password:string}[];
+  for(const account of accounts.filter(account=>['teacher','student'].includes(account.role))){
+    const context=await browser.newContext();try{const page=await context.newPage();await page.goto(uiUrl());
+      await expect(page.getByRole('button',{name:'Ingresar',exact:true})).toBeEnabled();
+      await page.getByLabel('Usuario',{exact:true}).fill(account.login);await page.getByLabel('Contraseña',{exact:true}).fill(account.password);
+      await page.getByRole('button',{name:'Ingresar',exact:true}).click();await page.getByRole('button',{name:'Mis cursos',exact:true}).click();
+      const course=page.getByRole('article').filter({hasText:'Synthetic course teacher'});await expect(course).toHaveCount(1);
+      await course.getByRole('button',{name:'Entrar al curso'}).click();await expect(page.getByText('Docente: Synthetic course teacher',{exact:true})).toBeVisible();
+      await expect(page.getByRole('button',{name:'Volver a mis cursos'})).toBeVisible();
+    }finally{await context.close();}
+  }
+});
 test('Director completes real period lifecycle and catalog operations',async({page})=>{
   await directorLogin(page);await page.getByRole('button',{name:'Períodos académicos',exact:true}).click();
   const form=page.getByRole('form',{name:'Crear período'});await expect(form.getByRole('button',{name:'Crear período'})).toBeEnabled();

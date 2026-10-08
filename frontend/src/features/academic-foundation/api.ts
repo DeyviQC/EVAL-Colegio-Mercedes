@@ -27,6 +27,8 @@ export function createAcademicClient(transport:typeof fetch,csrf:()=>string) {
   }
   const locator=decimalId;
   return {
+    myCourses:<T>(decode:(value:unknown)=>T,after:string|null=null)=>request('my-courses'+(after?'?after='+locator(after):''),decode),
+    course:<T>(id:string,decode:(value:unknown)=>T)=>request('my-courses/'+locator(id),decode),
     directory:<T>(path:'periods'|'catalog/entry'|'catalog/grade'|'catalog/section',decode:(value:unknown)=>T,after:string|null=null)=>request(path+(after===null?'':'?after='+locator(after)),decode),
     createPeriod:(input:{name:string;start_on:string;end_on:string})=>{const row=exact(input,['name','start_on','end_on']);return request('periods',identityResult,{name:text(row.name),start_on:date(row.start_on),end_on:date(row.end_on)});},
     transitionPeriod:(id:string,action:'activate'|'close')=>{if(!['activate','close'].includes(action))throw new Error('Invalid action');return request('periods/'+locator(id)+'/'+action,identityResult,{});},

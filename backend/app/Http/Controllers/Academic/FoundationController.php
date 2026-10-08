@@ -33,6 +33,12 @@ final class FoundationController
             if(!$actor){throw new AcademicCommandFailure('unauthenticated');}
             $authorization=new AcademicAuthorization($this->db,$this->references);$policy=new AcademicPolicy($authorization);
             $path=$request->getPathInfo();$method=$request->getMethod();$input=$this->input($request);
+            if($method==='GET'&&($path==='/academic/my-courses'||preg_match('#^/academic/my-courses/([0-9]+)$#',$path,$courseMatch))){
+                FoundationCommandChecks::fields($input,[]);FoundationCommandChecks::fields($request->query->all(),$path==='/academic/my-courses'?['after']:[]);
+                $courses=new \App\Application\Academic\Queries\MyCoursesQuery($this->db,new \App\Infrastructure\Persistence\Academic\LocalIdentityLabels($this->db));
+                $after=$request->query->all()['after']??null;if($after!==null)$after=$this->locator($after);
+                return $this->ok($path==='/academic/my-courses'?$courses->page($actor,$after):$courses->detail($actor,$this->locator($courseMatch[1])));
+            }
             $directory=$method==='GET' && ($path==='/academic/periods'||preg_match('#^/academic/catalog/(entry|grade|section)$#',$path));
             if($directory){
                 FoundationCommandChecks::fields($input,[]);FoundationCommandChecks::fields($request->query->all(),['after']);
