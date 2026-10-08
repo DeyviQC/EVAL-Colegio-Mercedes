@@ -40,3 +40,7 @@ No HTTP endpoint, controller/policy adapter test, complete Laravel kernel, insti
 | Total | 262 | 2547 |
 
 All suites pass. Scoped PHP/PowerShell syntax and git diff whitespace checks pass. No new retry/transaction protocol or source-state mutation is introduced by these queries. No apply, remote Git operation, candidate integration or deferred functionality occurred.
+
+## Subsequent HTTP handoff
+
+The human approved the proposed HTTP contract after this core receipt. Task 6.5 was subsequently implemented and verified; see docs/u9-http-human-approval.md and docs/u9-http-verification.md. This document preserves the earlier core boundary/counts/blocker as historical evidence; it does not describe 6.5 as still pending after that subsequent handoff.

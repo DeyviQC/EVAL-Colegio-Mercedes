@@ -11,18 +11,23 @@ final class OwnHistoricalSubmissionQuery
     public function __construct(private Connection $db,private AcademicAuthorization $authorization,
         private AcademicReferenceReader $references,private AcademicIdentityLabels $identityLabels){}
     public function get(?AuthenticatedActor $actor,string $id):array
+    {return $this->project($actor,$id,true);}
+    /** Server-authorized Director/teacher history; students still require ownership in the policy. */
+    public function getForAuthorizedHistory(?AuthenticatedActor $actor,string $id):array
+    {return $this->project($actor,$id,false);}
+    private function project(?AuthenticatedActor $actor,string $id,bool $ownerOnly):array
     {
         try{$id=\App\Infrastructure\Persistence\Academic\AcademicLockSet::id($id);}
         catch(\InvalidArgumentException){throw new AcademicCommandFailure('not_found');}
         $submission=$this->references->submission($id);
         // Owner gate precedes historical relationship/label resolution, even for administrators.
-        if(!$actor || !$submission || (string)$submission['student_id']!==$actor->identityId
+        if(!$actor || !$submission || ($ownerOnly && (string)$submission['student_id']!==$actor->identityId)
             || !$this->authorization->allows($actor,'submission.read',['submission_id'=>$id])){throw new AcademicCommandFailure('not_found');}
         $activity=$this->references->activity((string)$submission['activity_id']);
         if(!$activity || (string)$activity['teaching_assignment_id']!==(string)$submission['teaching_assignment_id']){throw new AcademicCommandFailure('not_found');}
         $assignment=$this->load('teaching_assignments',(string)$submission['teaching_assignment_id']);
         $enrollment=$this->load('student_enrollments',(string)$submission['accepted_under_enrollment_id']);
-        if((string)$enrollment['student_id']!==$actor->identityId){throw new AcademicCommandFailure('not_found');}
+        if((string)$enrollment['student_id']!==(string)$submission['student_id']){throw new AcademicCommandFailure('not_found');}
         foreach(['academic_period_id','grade_id','section_id'] as $field){
             if((string)$assignment[$field]!==(string)$enrollment[$field]){throw new AcademicCommandFailure('not_found');}
         }

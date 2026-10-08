@@ -13,3 +13,7 @@ U9 explicitly permits activity/submission reference fixtures until U10/U11. Acad
 AcademicIdentityLabels is a required internal authoritative label port, with no fabricated name or ID-as-name fallback. Retained identity storage currently contains ID/status, not an approved institutional profile-name source; the tests bind synthetic labels and prove current corrected labels rather than label-at-time snapshots. A real retained-profile mapping/binding remains gate 1.6/deployment work. Missing labels fail closed. This is not proof of institutional account management or persisted submission integration.
 
 Remaining 6.5 contract proposal is docs/u9-pending-http-contract.md. No public route/controller/full Laravel kernel/listener is created in this handoff. Persisted original-work integration remains 7.5. No U10/U11, deferred capability, Internet dependency, apply, remote Git or 2e5d053 integration is started.
+
+## Subsequent HTTP handoff
+
+The human approved the proposed HTTP contract after this core receipt. Task 6.5 was subsequently implemented and verified; see docs/u9-http-human-approval.md and docs/u9-http-verification.md. This document preserves the earlier core boundary/counts/blocker as historical evidence; it does not describe 6.5 as still pending after that subsequent handoff.
