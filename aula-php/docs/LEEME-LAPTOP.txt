@@ -1,0 +1,26 @@
+EVAL-NSM - ABRIR EN OTRA LAPTOP WINDOWS
+
+1. Extrae TODO el ZIP en una carpeta. No lo ejecutes desde dentro del ZIP.
+2. Necesitas PHP 8.2 o superior con pdo_sqlite, sqlite3, mbstring y fileinfo.
+   Puedes usar tu instalación de XAMPP en C:\xampp.
+   También se reconoce PHP en C:\php, en el PATH, o en la subcarpeta php.
+   Este ZIP no incluye el ejecutable de PHP.
+3. Haz doble clic en Abrir EVAL-NSM.cmd.
+   Inicia el servidor local en segundo plano y abre el navegador.
+4. Dirección: director@eval.test / Mercedes2026!
+   Estudiante: estudiante@eval.test / Mercedes2026!
+   Matemática: docente@eval.test / Mercedes2026!
+   Otros docentes: comunicacion@eval.test, ciencia@eval.test,
+   sociales@eval.test, ingles@eval.test y arte@eval.test.
+   Contraseña inicial de las cuentas de prueba: Mercedes2026!
+
+Incluye la base local de prueba: 5 grados, 25 salones, 250 alumnas,
+6 docentes y 150 asignaciones de curso. No necesitas MySQL para probarlo.
+Los datos se guardan en storage/eval.sqlite. No borres esa carpeta. Las páginas están en public/ y la lógica en app/.
+
+Alternativa desde una terminal en esta carpeta:
+php -d upload_max_filesize=10M -d post_max_size=12M -S 127.0.0.1:8080 -t public scripts/router.php
+Abrir http://127.0.0.1:8080/login.php
+
+Para usar MySQL después, consulta README.md y config/example.php.
+
