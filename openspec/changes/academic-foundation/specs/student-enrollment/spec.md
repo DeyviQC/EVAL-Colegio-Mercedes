@@ -8,18 +8,18 @@ Define period-bound student enrollment, enrollment-derived academic scope, trans
 
 ### Requirement: Stable period-bound enrollment
 
-EVAL MUST give each student enrollment a stable identity and MUST bind it to exactly one student, one academic period, one grade, and one section. The section MUST belong to the selected grade. The period identity is mandatory, but enrollment declared dates MUST NOT be subject to an additional containment rule against period dates. All other date, scope, lifecycle, authorization, and conflict validations MUST still apply. New enrollment creation MUST be rejected in a closed period.
+EVAL MUST give each student enrollment a stable identity and MUST bind it to exactly one student, one academic period, one grade, and one section. The section MUST belong to the selected grade. The period identity is mandatory, but enrollment declared dates MUST NOT be subject to an additional containment rule against period dates. All other date, scope, lifecycle, authorization, and conflict validations MUST still apply. Creation of an active enrollment, including a transfer successor, MUST require an `active` parent period; `planned` and `closed` parents MUST reject that creation. This enrollment-specific rule MUST NOT prohibit otherwise valid planned teaching-assignment creation.
 
 #### Scenario: Enroll a student for a period
 
-- GIVEN the student, non-closed academic period, grade, and section are valid
+- GIVEN the student, active academic period, grade, and section are valid
 - AND the section belongs to the grade
 - WHEN an authorized director/administrator creates the enrollment
 - THEN EVAL MUST create a stable enrollment bound to exactly those records
 
 #### Scenario: Do not reject solely for enrollment dates outside the period
 
-- GIVEN an enrollment identifies exactly one non-closed period and its declared dates fall outside that period's calendar boundaries
+- GIVEN an enrollment identifies exactly one active period and its declared dates fall outside that period's calendar boundaries
 - AND all other validations are satisfied
 - WHEN an authorized director/administrator requests enrollment
 - THEN EVAL MUST NOT reject solely because the enrollment dates are not contained within the period
@@ -30,6 +30,13 @@ EVAL MUST give each student enrollment a stable identity and MUST bind it to exa
 - GIVEN an enrollment request omits the period, grade, or section
 - WHEN EVAL validates the request
 - THEN EVAL MUST reject the request
+
+#### Scenario: Reject active enrollment creation under a planned period
+
+- GIVEN the requested academic period is planned
+- WHEN creation of an active enrollment or transfer successor is requested
+- THEN EVAL MUST reject creation without changing academic state, boundaries, identities or events
+- AND this enrollment-specific denial MUST NOT prohibit valid planned teaching-assignment creation
 
 ### Requirement: One active enrollment per student and period
 
@@ -50,12 +57,14 @@ A student MUST have no more than one active enrollment in an academic period at 
 #### Scenario: Allow enrollments in different periods
 
 - GIVEN a student has an enrollment in one academic period
-- WHEN a valid enrollment is created for a different non-closed academic period
+- WHEN a valid enrollment is created for a different active academic period
 - THEN EVAL MUST permit the additional enrollment
 
 ### Requirement: Enrollment lifecycle and effective dates
 
 Each enrollment MUST have an effective start date and MUST be in exactly one of `active`, `transferred`, or `closed` states. A transferred or closed enrollment MUST have an effective end date that is not earlier than its start date and MUST NOT become active again. An open end MUST NOT expire automatically at the period end. Director/administrator MUST be permitted to close a residual active enrollment explicitly with a valid end date even when its period is closed; period closure MUST NOT close it automatically.
+
+For explicit administrative closure, the declared end date MUST be a valid school-local date on or before the server's current date in America/Lima, and MUST NOT precede the declared start. A future declared closure date MUST be rejected without mutations. Closure MUST end operational authority at the actual successful server transaction key K, while preserving the supplied permitted declared end date. EVAL MUST NOT backdate K, convert the declared date to midnight/ordinal, rewrite earlier accepted context, or schedule closure from that date. This mapping applies only to enrollment administrative closure; assignment/replacement mappings remain separate.
 
 #### Scenario: Close an enrollment
 
@@ -63,6 +72,19 @@ Each enrollment MUST have an effective start date and MUST be in exactly one of 
 - WHEN an authorized director/administrator closes it with a valid effective end date
 - THEN EVAL MUST mark it closed
 - AND EVAL MUST retain its effective interval
+
+#### Scenario: Preserve a past declared closure date without retroactive authority changes
+
+- GIVEN an active enrollment has a declared start no later than a permitted past closure date
+- WHEN director/administrator explicitly closes it successfully at server key K
+- THEN EVAL MUST preserve the supplied declared end date and set operational end to K
+- AND EVAL MUST preserve previously accepted context and history without backdating the operation
+
+#### Scenario: Reject a future administrative closure date
+
+- GIVEN a requested closure date is later than the server's current school-local date
+- WHEN explicit enrollment closure is requested
+- THEN EVAL MUST reject the request without changing state, dates, boundaries or events
 
 #### Scenario: Keep an open enrollment without automatic expiry
 
@@ -80,11 +102,11 @@ Each enrollment MUST have an effective start date and MUST be in exactly one of 
 
 ### Requirement: Non-destructive transfer within a period
 
-A grade or section transfer within the same non-closed academic period MUST end the prior enrollment as `transferred` and create a new active enrollment with a new identity. Transfers MUST take effect immediately only upon successful server-confirmed execution. Future scheduling, retroactive transfers, and transfer corrections MUST be rejected without mutations. EVAL MUST preserve the prior enrollment as historical and MUST NOT overwrite its grade, section, or identity. From the server-effective moment of successful transfer, the prior enrollment MUST NOT authorize any new academic operation. Same-day operations MUST retain their ordered, non-overlapping history without imposing a minimum one-day interval.
+A grade or section transfer within the same active academic period MUST end the prior enrollment as `transferred` and create a new active enrollment with a new identity. Transfers MUST take effect immediately only upon successful server-confirmed execution. Future scheduling, retroactive transfers, and transfer corrections MUST be rejected without mutations. EVAL MUST preserve the prior enrollment as historical and MUST NOT overwrite its grade, section, or identity. From the server-effective moment of successful transfer, the prior enrollment MUST NOT authorize any new academic operation. Same-day operations MUST retain their ordered, non-overlapping history without imposing a minimum one-day interval.
 
 #### Scenario: Transfer a student to another section
 
-- GIVEN a student has an active enrollment in a non-closed academic period
+- GIVEN a student has an active enrollment in an active academic period
 - AND a valid destination grade and section are available
 - WHEN an authorized director/administrator requests an immediate transfer and the server successfully confirms it
 - THEN EVAL MUST mark the prior enrollment as transferred

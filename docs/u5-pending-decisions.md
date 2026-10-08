@@ -26,3 +26,7 @@ For an approval of the recommended mapping to unblock all affected cases, identi
 ## Boundary
 
 No change is proposed to the approved no-containment rule, no reopen, half-open key intervals, same-day operation order, immutable scope/identity, retained history or role matrix. U5 remains stopped until its applicable selections are recorded. Other deferred planned-assignment/replacement mappings need not be solved merely for this unit. No automatic request replay, remote Git action or integration of 2e5d053 is needed.
+
+## Subsequent human resolution
+
+The human explicitly approved active-parent enrollment creation, past/current valid administrative closure dates and actual successful K without retroactivity. See docs/u5-human-decisions.md for the exact grouped approval and scope. This historical pending document remains evidence of the options; it is not a parallel normative source. Remaining assignment/other planned-parent decisions are not resolved by that approval.

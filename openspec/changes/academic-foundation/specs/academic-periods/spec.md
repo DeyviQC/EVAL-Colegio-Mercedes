@@ -115,6 +115,7 @@ Every student enrollment and teaching assignment MUST belong to exactly one acad
 #### Scenario: Accept a period-bound record
 
 - GIVEN a non-closed academic period exists
+- AND active enrollment creation (including a transfer successor) targets an active period; planned teaching-assignment creation retains its separately approved eligibility
 - WHEN a valid enrollment or teaching assignment is created for that period
 - THEN EVAL MUST bind the record to exactly that academic period
 - AND EVAL MUST apply enrollment and assignment date validation independently without adding enrollment-date containment
@@ -132,6 +133,8 @@ Every student enrollment and teaching assignment MUST belong to exactly one acad
 - THEN EVAL MUST reject the request
 
 ### Requirement: Historical period retention
+
+Active enrollment creation, including transfer successors, requires an active parent period under the approved enrollment-specific eligibility rule. Planned-parent teaching-assignment planning remains permitted; this rule does not settle assignment activation or other new-work eligibility under planned parents. Enrollment administrative closure retains its separately approved past/current declared-date and actual-K mapping, including residual closure under a closed period.
 
 EVAL MUST retain closed academic periods and their identities. A period referenced by an enrollment, teaching assignment, activity, or submission MUST NOT be deleted or have its identity replaced. Role-authorized historical reads MUST remain available with original identities, owners, routes, and accepted-under enrollment context; closure MUST NOT rewrite them.
 
