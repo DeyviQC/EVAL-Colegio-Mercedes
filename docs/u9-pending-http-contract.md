@@ -9,3 +9,7 @@ Advantages: consistent client handling, no read-resource existence leak, explici
 Alternative: keep HTTP mapping pending and retain verified internal command/read ports without mounting academic routes. Advantage: no unapproved transport choice. Disadvantage: 6.5 and U9 overall stay incomplete; frontend integration waits. In either case, no framework installation is inferred. Existing Symfony request/response and local SessionGuard adapter can test an isolated transport boundary; full Laravel kernel/server/LAN acceptance requires separately established runtime evidence.
 
 Human response to the pending question is required before implementing 6.5. It does not automatically approve U10/U11 reference persistence, complete activity/submission processing, a production identity-name mapping, deployment, global gates or remote operations.
+
+## Subsequent contextual approval
+
+The human replied continuar to the final single-contract approval question. docs/u9-http-human-approval.md records approval before 6.5 code. The proposal above is preserved as history; the recommended mapping is now selected. Verification/global gates and later persistence remain separate.

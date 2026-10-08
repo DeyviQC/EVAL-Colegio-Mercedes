@@ -290,3 +290,7 @@ Tasks 5.3/5.4 are complete at the isolated command boundary: 27 tests / 333 asse
 ## Verified U9 core handoff (2026-10-07)
 
 Tasks 6.1-6.4 are complete at the approved internal policy/query and synthetic-reference contract boundary: 23 tests / 339 assertions on MySQL 8.4.9 eval_u9_test. See docs/u9-readiness.md and docs/u9-verification.md for server-derived roles/scope, closed-parent category denials versus cleanup/history/planning, purpose-bound minimum support and owner-first synthetic original-context projection. Ten suites total 262 tests / 2,547 assertions, all passing. Task 6.5 remains unchecked pending the explicit technical HTTP mapping in docs/u9-pending-http-contract.md; U9 is not complete. Gates 1.2-1.8 remain open; institutional profile-name binding, persisted U10/U11 integration/7.5 and public HTTP/browser/LAN/load acceptance are not claimed. No apply, remote Git or candidate integration occurred.
+
+## Approved U9 HTTP continuation (2026-10-07)
+
+The human approved the single recommended transport mapping by replying continuar to the approval question; see docs/u9-http-human-approval.md. Task 6.5 is ready for isolated policy/controller/request tests over existing runtime components, not full framework deployment. Earlier HTTP selection blockers are superseded; 6.5/global gate checkboxes stay pending until evidence. No U10/U11 reference-persistence approval is inferred.
