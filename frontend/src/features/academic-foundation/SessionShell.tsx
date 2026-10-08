@@ -4,6 +4,7 @@ import { createNavigationController, sectionLabels } from './navigation.js';
 import { createAcademicClient } from './api.js';
 import { FoundationWorkspace } from './FoundationWorkspace.js';
 import { MyCourses } from './MyCourses.js';
+import { createMaterialClient } from './materials.js';
 export function SessionPanel({view,onLogin,onLogout,onRefresh,children}:{view:SessionView;onLogin:(input:{login:string;password:string})=>Promise<void>;onLogout:()=>Promise<void>;onRefresh:()=>Promise<void>;children?:ReactNode}) {
   const [login,setLogin]=useState('');const [password,setPassword]=useState('');
   const pending=view.phase==='busy'||view.phase==='checking';const authenticated=view.phase==='authenticated';
@@ -27,6 +28,7 @@ export function SessionShell() {
   const session=useMemo(()=>createSessionClient(),[]);
   const controller=useMemo(()=>createSessionController(session),[session]);
   const academic=useMemo(()=>createAcademicClient(fetch,()=>session.csrfToken()??''),[session]);
+  const materials=useMemo(()=>createMaterialClient(fetch,()=>session.csrfToken()??''),[session]);
   const navigation=useMemo(()=>createNavigationController(),[]);
   const context=useSyncExternalStore(navigation.subscribe,navigation.snapshot,navigation.snapshot);
   const [selected,setSelected]=useState<string|null>(null);
@@ -37,6 +39,6 @@ export function SessionShell() {
     {context.phase==='loading'&&<p role="status">Consultando secciones…</p>}
     {context.phase==='unavailable'&&<><p role="alert">No se pudo confirmar la navegación.</p><button onClick={()=>void navigation.refresh()}>Consultar secciones</button></>}
     {context.phase==='ready'&&<><nav aria-label="Secciones académicas">{context.sections.map(section=><button key={section} className="mr-3 mb-3 rounded-lg border border-eval-teal px-4 py-2" aria-pressed={selected===section} onClick={()=>setSelected(section)}>{sectionLabels[section]}</button>)}</nav>
-      {selected==='my_assignments'||selected==='my_enrollments'?<MyCourses client={academic} onExpired={controller.invalidate}/>:selected==='periods'||selected==='catalog'?<FoundationWorkspace key={selected} section={selected} client={academic} onExpired={controller.invalidate}/>:<p>{context.sections.length===0?'No hay secciones habilitadas para esta sesión.':selected?'La consulta de registros de esta sección todavía no está disponible.':'Selecciona una sección disponible.'}</p>}</>}
+      {selected==='my_assignments'||selected==='my_enrollments'?<MyCourses client={academic} materials={materials} onExpired={controller.invalidate}/>:selected==='periods'||selected==='catalog'?<FoundationWorkspace key={selected} section={selected} client={academic} onExpired={controller.invalidate}/>:<p>{context.sections.length===0?'No hay secciones habilitadas para esta sesión.':selected?'La consulta de registros de esta sección todavía no está disponible.':'Selecciona una sección disponible.'}</p>}</>}
   </SessionPanel>;
 }

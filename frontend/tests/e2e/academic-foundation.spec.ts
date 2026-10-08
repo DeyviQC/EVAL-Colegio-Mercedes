@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { sectionLabels } from '../../src/features/academic-foundation/navigation.js';
+import { readFile, mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
 function uiUrl():string {
   const url=new URL(process.env.EVAL_UI_URL??'https://invalid.test');
   if(url.protocol!=='https:'||url.hostname!=='127.0.0.1'||!url.port)throw new Error('Approved isolated HTTPS UI/browser trust harness required');
@@ -94,6 +96,45 @@ test('teacher and student open their actual stored courses',async({browser})=>{
       await expect(page.getByRole('button',{name:'Volver a mis cursos'})).toBeVisible();
     }finally{await context.close();}
   }
+});
+async function materialLogin(page:import('@playwright/test').Page,role:string){
+  const accounts=JSON.parse(process.env.EVAL_MATERIAL_DEMO_ACCOUNTS!) as {role:string;login:string;password:string}[];const account=accounts.find(account=>account.role===role)!;
+  await page.goto(uiUrl());await expect(page.getByRole('button',{name:'Ingresar',exact:true})).toBeEnabled();await page.getByLabel('Usuario',{exact:true}).fill(account.login);await page.getByLabel('Contraseña',{exact:true}).fill(account.password);
+  await page.getByRole('button',{name:'Ingresar',exact:true}).click();await page.getByRole('button',{name:'Mis cursos',exact:true}).click();
+  await page.getByRole('article',{name:'Matemática · 2.º B',exact:true}).getByRole('button',{name:'Entrar al curso'}).click();await page.getByRole('button',{name:'Materiales',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Consultar materiales'})).toBeEnabled();
+}
+function materialPdf(){const stream='BT /F1 12 Tf 20 100 Td (EVAL: fracciones para 2 B) Tj ET';const objects=[
+  '<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 220 220] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+  '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`];
+  let pdf='%PDF-1.4\n';const offsets=[0];for(let i=0;i<objects.length;i++){offsets.push(pdf.length);pdf+=`${i+1} 0 obj\n${objects[i]}\nendobj\n`;}
+  const xref=pdf.length;pdf+='xref\n0 6\n0000000000 65535 f \n'+offsets.slice(1).map(offset=>String(offset).padStart(10,'0')+' 00000 n \n').join('');pdf+=`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;return Buffer.from(pdf);
+}
+test('real teacher publishes and independent student session downloads identical material',async({browser})=>{
+  const teacherContext=await browser.newContext(),studentContext=await browser.newContext();const title='Fracciones para 2.º B',pdf=materialPdf();
+  const evidence=join(process.env.LOCALAPPDATA!,'Temp','eval-materials-ui-evidence');await mkdir(evidence,{recursive:true});
+  try{const teacher=await teacherContext.newPage(),student=await studentContext.newPage();await materialLogin(teacher,'teacher');
+    await teacher.getByRole('button',{name:'Publicar material'}).click();await expect(teacher.getByLabel('Título',{exact:true})).toBeFocused();
+    await teacher.getByLabel('Título',{exact:true}).fill(title);await teacher.getByLabel('Descripción (opcional)').fill('Un recurso para aprender fracciones en el aula.');
+    await teacher.getByLabel('Archivo',{exact:true}).setInputFiles({name:'fracciones.pdf',mimeType:'application/pdf',buffer:pdf});
+    await teacher.getByRole('button',{name:'Publicar',exact:true}).click();await expect(teacher.getByText('Material publicado correctamente.',{exact:true})).toBeVisible();
+    const published=teacher.getByRole('article',{name:title,exact:true});await expect(published).toContainText('Publicado por Lucía Torres (demo)');await teacher.screenshot({path:join(evidence,'docente-materiales.png'),fullPage:true});
+    const teacherDownload=teacher.waitForEvent('download');await published.getByRole('link',{name:'Descargar',exact:true}).click();const own=await teacherDownload;expect((await readFile((await own.path())!)).equals(pdf)).toBe(true);
+    await materialLogin(student,'student');await expect(student.getByRole('button',{name:'Publicar material'})).toHaveCount(0);
+    const same=student.getByRole('article',{name:title,exact:true});await expect(same).toBeVisible();await expect(same).toContainText('Un recurso para aprender fracciones en el aula.');
+    await student.setViewportSize({width:768,height:1024});expect(await student.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await student.screenshot({path:join(evidence,'estudiante-materiales.png'),fullPage:true});
+    const opened=await student.evaluate(async(path)=>{const response=await fetch(path!);return {status:response.status,bytes:Array.from(new Uint8Array(await response.arrayBuffer()))};},await same.getByRole('link',{name:'Abrir',exact:true}).getAttribute('href'));expect(opened.status).toBe(200);expect(Buffer.from(opened.bytes).equals(pdf)).toBe(true);
+    const download=student.waitForEvent('download');await same.getByRole('link',{name:'Descargar',exact:true}).click();const received=await download;expect(received.suggestedFilename()).toBe('fracciones.pdf');expect((await readFile((await received.path())!)).equals(pdf)).toBe(true);
+    await student.getByRole('button',{name:'Volver al curso',exact:true}).click();await expect(student.getByRole('button',{name:'Materiales',exact:true})).toBeVisible();
+  }finally{await teacherContext.close();await studentContext.close();}
+});
+test('materials empty state and uncertain upload do not replay across course navigation',async({page})=>{
+  await materialLogin(page,'teacher');let writes=0;
+  await page.route('**/academic/my-courses/*/materials',route=>route.request().method()==='POST'?(writes++,route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'commit_outcome_unknown',correlation_id:'a'.repeat(32),automatic_retry:false})})):route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:{items:[],next_after:null}})}));
+  await page.getByRole('button',{name:'Consultar materiales'}).click();await expect(page.getByRole('heading',{name:'Todavía no hay materiales'})).toBeVisible();
+  await page.getByRole('button',{name:'Publicar material'}).click();await page.getByLabel('Título',{exact:true}).fill('Resultado incierto');await page.getByLabel('Archivo',{exact:true}).setInputFiles({name:'fracciones.pdf',mimeType:'application/pdf',buffer:materialPdf()});
+  await page.getByRole('button',{name:'Publicar',exact:true}).click();await expect(page.getByRole('alert')).toContainText('No se pudo confirmar la publicación');await expect(page.getByRole('alert')).toBeFocused();
+  await expect(page.getByRole('button',{name:'Publicar material'})).toBeDisabled();expect(writes).toBe(1);await page.getByRole('button',{name:'Volver al curso'}).click();await page.getByRole('button',{name:'Materiales',exact:true}).click();await expect(page.getByRole('button',{name:'Publicar material'})).toBeDisabled();expect(writes).toBe(1);
 });
 test('Director completes real period lifecycle and catalog operations',async({page})=>{
   await directorLogin(page);await page.getByRole('button',{name:'Períodos académicos',exact:true}).click();

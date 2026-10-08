@@ -43,9 +43,11 @@ final class LocalHttpsRuntimeTest extends SubmissionReferenceTestCase
     public function testExplicitTemporaryHumanPreview():void
     {
         if(getenv('EVAL_HUMAN_PREVIEW')!=='1')$this->markTestSkipped('Explicit human preview only.');
-        $password='EVAL-demo-local-2026';
+        $demo=$this->materialAccounts();$password='EVAL-demo-local-2026';
+        foreach($demo as $account)$this->migration->table('local_credentials')->where('login',$account['login'])->update(['password'=>(new BcryptHasher(['rounds'=>4]))->make($password)]);
         $this->migration->table('local_credentials')->where('id',$this->actor->identityId)->update(['password'=>(new BcryptHasher(['rounds'=>4]))->make($password)]);
         fwrite(STDOUT,"PREVIEW_URL=".$this->origin."\nPREVIEW_LOGIN=fixture-".$this->actor->identityId."\n");
+        foreach($demo as $account)fwrite(STDOUT,'PREVIEW_'.$account['role'].'='.$account['login']."\n");
         // Human-requested disposable preview; owned workers terminate in teardown.
         $deadline=microtime(true)+1800;while(microtime(true)<$deadline&&!is_file($this->directory.'/stop'))usleep(250000);
         $this->assertTrue(true);
@@ -56,6 +58,7 @@ final class LocalHttpsRuntimeTest extends SubmissionReferenceTestCase
         $frontend=dirname(__DIR__,4).'/frontend';
         $this->assertFileExists($frontend.'/dist/index.html');
         $unrelatedEnrollment=$this->enrollment();
+        $demo=$this->materialAccounts();
         $password=bin2hex(random_bytes(16));
         $this->migration->table('local_credentials')->where('id',$this->actor->identityId)->update(['password'=>(new BcryptHasher(['rounds'=>4]))->make($password)]);
         $public=openssl_pkey_get_details(openssl_pkey_get_public((string)file_get_contents($this->directory.'/cert.pem')))['key'];
@@ -71,6 +74,7 @@ final class LocalHttpsRuntimeTest extends SubmissionReferenceTestCase
             if($role==='director_admin'){$environment['EVAL_BROWSER_PASSWORD']=$secret;}
         }
         $environment['EVAL_BROWSER_ACCOUNTS']=json_encode($accounts,JSON_THROW_ON_ERROR);
+        $environment['EVAL_MATERIAL_DEMO_ACCOUNTS']=json_encode($demo,JSON_THROW_ON_ERROR);
         $environment['EVAL_BROWSER_DENIED_ENROLLMENT']=$unrelatedEnrollment;
         $environment['EVAL_BROWSER_ACTIVE_PERIOD']=$this->period;
         $this->migration->table('retained_identity_profiles')->insert(['identity_id'=>$this->teacherActor->identityId,'display_name'=>'Synthetic course teacher']);
@@ -80,10 +84,30 @@ final class LocalHttpsRuntimeTest extends SubmissionReferenceTestCase
         do{$status=proc_get_status($worker);if($status['running'])usleep(100000);}while($status['running']&&microtime(true)<$deadline);
         $this->assertFalse($status['running'],'Owned browser runner exceeded its deadline.');
         $diagnostics=(string)file_get_contents($this->directory.'/browser.out').(string)file_get_contents($this->directory.'/browser.err');
+        $diagnostics=preg_replace('/(__Host-eval_session=)[^\s;]+/','$1[redacted]',$diagnostics);
         foreach($accounts as $account)$diagnostics=str_replace([$account['password'],$account['login']],['[redacted]','[fixture]'],$diagnostics);
+        foreach($demo as $account)$diagnostics=str_replace([$account['password'],$account['login']],['[redacted]','[fixture]'],$diagnostics);
         $this->assertSame(0,$status['exitcode'],'Browser suite failed: '.$diagnostics);
         $output=(string)file_get_contents($this->directory.'/browser.out');
-        $this->assertStringContainsString('9 passed',$output);fwrite(STDOUT,"Browser suite: 9 passed (actual Chromium HTTPS roles, real courses and Phase A).\n");
+        $this->assertStringContainsString('11 passed',$output);fwrite(STDOUT,"Browser suite: 11 passed (actual Chromium HTTPS two-session material publication/download and regressions).\n");
+    }
+    private function materialAccounts():array {
+        $number=$this->db->table('academic_periods')->where('name','like','Curso escolar 2026 · Demostración %')->count()+1;
+        $periodName='Curso escolar 2026 · Demostración '.$number;
+        $this->migration->table('academic_periods')->where('id',$this->period)->update(['name'=>$periodName,'name_key'=>\App\Domain\Academic\AcademicNameKey::generate($periodName)]);
+        $teacher=$this->actor('teacher');$student=$this->actor('student');
+        $catalog=function($type,$name,$scope=[]){$table=match($type){'entry'=>'instructional_entries','grade'=>'grades','section'=>'sections'};
+            $query=$this->db->table($table)->where('name_key',\App\Domain\Academic\AcademicNameKey::generate($name))->where('is_active',true);foreach($scope as $field=>$value)$query->where($field,$value);
+            return (string)($query->value('id')??$this->catalog->create($this->actor,$type,['name'=>$name]+$scope));};
+        $entry=$catalog('entry','Matemática',['kind'=>'subject']);$grade=$catalog('grade','2.º');$section=$catalog('section','B',['grade_id'=>$grade]);
+        $assignment=$this->assignment(['teacher_id'=>$teacher->identityId,'instructional_entry_id'=>$entry,'grade_id'=>$grade,'section_id'=>$section]);$this->assignments->activate($this->actor,$assignment);
+        $this->enrollment(['student_id'=>$student->identityId,'grade_id'=>$grade,'section_id'=>$section]);$accounts=[];
+        foreach([['teacher',$teacher,'Lucía Torres (demo)'],['student',$student,'Ana Flores (demo)']] as [$role,$actor,$name]){
+            $secret=bin2hex(random_bytes(16));$login='fixture-'.$actor->identityId;
+            $this->migration->table('retained_identity_profiles')->insert(['identity_id'=>$actor->identityId,'display_name'=>$name]);
+            $this->migration->table('local_credentials')->where('id',$actor->identityId)->update(['password'=>(new BcryptHasher(['rounds'=>4]))->make($secret)]);
+            $accounts[]=['role'=>$role,'login'=>$login,'password'=>$secret];
+        }return $accounts;
     }
     private function start(array $command,array $environment,string $name):void
     {

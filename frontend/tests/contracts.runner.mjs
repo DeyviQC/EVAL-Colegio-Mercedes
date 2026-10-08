@@ -4,4 +4,5 @@ import { uiCases } from '../.test-build/features/academic-foundation/ui.test.js'
 import { navigationCases } from '../.test-build/features/academic-foundation/navigation.test.js';
 import { directoryCases } from '../.test-build/features/academic-foundation/directory.test.js';
 import { courseCases } from '../.test-build/features/academic-foundation/courses.test.js';
-for (const [name, run] of [...cases,...uiCases,...navigationCases,...directoryCases,...courseCases]) test(name, run);
+import { materialCases } from '../.test-build/features/academic-foundation/materials.test.js';
+for (const [name, run] of [...cases,...uiCases,...navigationCases,...directoryCases,...courseCases,...materialCases]) test(name, run);
