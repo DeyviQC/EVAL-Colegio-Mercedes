@@ -15,6 +15,8 @@ const server=https.createServer({cert:readFileSync(certPath),key:readFileSync(ke
   }
   if(process.env.EVAL_UI_ENABLED==='1' && request.method==='GET') {
     const path=new URL(request.url,`https://${expectedHost}`).pathname;
+    // Browser auxiliary requests must not bootstrap a competing anonymous session.
+    if(path==='/favicon.ico') { response.writeHead(204,{'Cache-Control':'no-store'});response.end();return; }
     const filename=path==='/'?'index.html':/^\/assets\/[A-Za-z0-9_-]+\.(js|css)$/.test(path)?path.slice(1):null;
     if(filename!==null) {
       const target=resolve(uiRoot,filename);

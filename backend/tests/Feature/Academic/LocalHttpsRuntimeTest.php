@@ -39,6 +39,29 @@ final class LocalHttpsRuntimeTest extends SubmissionReferenceTestCase
     }
     private function freePort():int
     {$socket=stream_socket_server('tcp://127.0.0.1:0',$code,$message);$this->assertIsResource($socket);$port=(int)substr(strrchr(stream_socket_get_name($socket,false),':'),1);fclose($socket);return $port;}
+    public function testApprovedBrowserSessionAndCertificateBoundary():void
+    {
+        if(getenv('EVAL_RUN_BROWSER')!=='1')$this->markTestSkipped('Explicit browser invocation required.');
+        $frontend=dirname(__DIR__,4).'/frontend';
+        $this->assertFileExists($frontend.'/dist/index.html');
+        $password=bin2hex(random_bytes(16));
+        $this->migration->table('local_credentials')->where('id',$this->actor->identityId)->update(['password'=>(new BcryptHasher(['rounds'=>4]))->make($password)]);
+        $public=openssl_pkey_get_details(openssl_pkey_get_public((string)file_get_contents($this->directory.'/cert.pem')))['key'];
+        $der=base64_decode(preg_replace('/-----[^-]+-----|\s/','',$public),true);$this->assertNotFalse($der);
+        $environment=array_intersect_key(getenv(),array_flip(['PATH','Path','SystemRoot','TEMP','TMP','LOCALAPPDATA','PLAYWRIGHT_BROWSERS_PATH']));
+        $environment['EVAL_UI_URL']=$this->origin;$environment['EVAL_TLS_SPKI']=base64_encode(hash('sha256',$der,true));
+        $environment['EVAL_BROWSER_LOGIN']='fixture-'.$this->actor->identityId;$environment['EVAL_BROWSER_PASSWORD']=$password;
+        $worker=proc_open(['node',$frontend.'/node_modules/playwright/cli.js','test'],
+            [0=>['file','NUL','r'],1=>['file',$this->directory.'/browser.out','w'],2=>['file',$this->directory.'/browser.err','w']],$pipes,$frontend,$environment);
+        $this->assertIsResource($worker);$this->workers[]=$worker;$deadline=microtime(true)+120;
+        do{$status=proc_get_status($worker);if($status['running'])usleep(100000);}while($status['running']&&microtime(true)<$deadline);
+        $this->assertFalse($status['running'],'Owned browser runner exceeded its deadline.');
+        $diagnostics=(string)file_get_contents($this->directory.'/browser.out').(string)file_get_contents($this->directory.'/browser.err');
+        $diagnostics=str_replace([$password,$environment['EVAL_BROWSER_LOGIN']],['[redacted]','[fixture]'],$diagnostics);
+        $this->assertSame(0,$status['exitcode'],'Browser suite failed: '.$diagnostics);
+        $output=(string)file_get_contents($this->directory.'/browser.out');
+        $this->assertStringContainsString('5 passed',$output);fwrite(STDOUT,"Browser suite: 5 passed (actual Chromium HTTPS DOM and certificate probes).\n");
+    }
     private function start(array $command,array $environment,string $name):void
     {
         $worker=proc_open($command,[0=>['file','NUL','r'],1=>['file',$this->directory.'/'.$name.'.out','w'],2=>['file',$this->directory.'/'.$name.'.err','w']],$pipes,null,$environment);
