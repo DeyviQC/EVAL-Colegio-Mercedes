@@ -27,10 +27,11 @@ final class LocalHttpsRuntimeTest extends SubmissionReferenceTestCase
         $environment=getenv();unset($environment['EVAL_U1_MIGRATION_PASSWORD']);
         $environment['EVAL_PROXY_KEY']=bin2hex(random_bytes(32));$environment['EVAL_RUNTIME_KEY']=base64_encode(random_bytes(32));
         $environment['EVAL_RUNTIME_ORIGIN']=$this->origin;
+        $environment['EVAL_UI_ENABLED']='1';
         $backend=dirname(__DIR__,3);$ini=dirname((string)getenv('EVAL_VENDOR_DIR')).'/php.ini';
         $this->start([PHP_BINARY,'-c',$ini,'-d','display_errors=0','-S','127.0.0.1:'.$this->upstream,$backend.'/dev-runtime/router.php'],$environment,'php');
         // Node gets no database credentials or encryption key.
-        $nodeEnvironment=array_intersect_key($environment,array_flip(['PATH','Path','SystemRoot','TEMP','TMP','EVAL_PROXY_KEY']));
+        $nodeEnvironment=array_intersect_key($environment,array_flip(['PATH','Path','SystemRoot','TEMP','TMP','EVAL_PROXY_KEY','EVAL_UI_ENABLED']));
         $this->start(['node',$backend.'/dev-runtime/https-proxy.mjs',(string)$port,(string)$this->upstream,$this->directory.'/cert.pem',$this->directory.'/key.pem'],$nodeEnvironment,'node');
         $deadline=microtime(true)+10;
         do{$ready=str_contains((string)file_get_contents($this->directory.'/node.out'),'READY');if(!$ready)usleep(10000);}while(!$ready&&microtime(true)<$deadline);
@@ -108,5 +109,22 @@ final class LocalHttpsRuntimeTest extends SubmissionReferenceTestCase
         foreach(array_reverse($this->workers) as $worker){if(proc_get_status($worker)['running'])proc_terminate($worker);proc_close($worker);}
         if(isset($this->directory)){foreach(glob($this->directory.'/*') as $file)unlink($file);rmdir($this->directory);}
         parent::tearDown();
+    }
+    public function testBuiltUiAssetsUseSameVerifiedTlsOriginWithoutExternalReferences():void
+    {
+        $dist=dirname(__DIR__,4).'/frontend/dist';
+        if(!is_file($dist.'/index.html'))$this->markTestSkipped('Run frontend npm run build before UI asset integration.');
+        $context=stream_context_create(['ssl'=>['cafile'=>$this->directory.'/cert.pem','verify_peer'=>true,'verify_peer_name'=>true],
+            'http'=>['ignore_errors'=>true,'timeout'=>5]]);
+        $html=file_get_contents($this->origin.'/',false,$context);$this->assertNotFalse($html);$this->assertStringContainsString('<title>EVAL</title>',$html);
+        preg_match_all('/(?:src|href)="([^"]+)"/',$html,$references);$this->assertCount(2,$references[1]);
+        foreach($references[1] as $path){
+            $this->assertMatchesRegularExpression('#^/assets/[A-Za-z0-9_-]+\.(js|css)$#',$path);
+            $asset=file_get_contents($this->origin.$path,false,$context);$this->assertNotFalse($asset);$this->assertNotEmpty($asset);
+            $this->assertStringContainsString('200',$http_response_header[0]);
+            $this->assertContains('X-Content-Type-Options: nosniff',$http_response_header);
+        }
+        $traversal=file_get_contents($this->origin.'/assets/../../../backend/composer.json',false,$context);
+        $this->assertStringNotContainsString('eval/academic-foundation',$traversal);
     }
 }

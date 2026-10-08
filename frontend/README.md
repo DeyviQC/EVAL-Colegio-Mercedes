@@ -21,3 +21,13 @@ With the verified npm cache populated, `npm ci --offline --ignore-scripts --no-a
 `submissionAdmission` targets the existing reserved U9 endpoint: it currently returns denial/unavailability and does not expose the internal U11 persistence service. No submission processing/content/recipient selector is implemented. Activity writes, institutional teacher-label binding and a full HTTPS listener remain separate prerequisites.
 
 Tests use injected fetch responses and real platform Request/Response behavior. They do not exercise a network server, browser rendering, real frontend/backend end-to-end schema agreement, React, TLS or school LAN/WLAN. Existing backend U11 integration tests separately verify actual persisted routes/history/authorization. Tasks 8.2-8.4 remain open.
+
+## Session UI checkpoint
+
+React/Vite/Tailwind and Playwright Test were explicitly approved subsequently; see docs/u12-ui-human-approval.md and docs/u12-ui-verification.md. The historical contract-only boundaries above remain the original 8.1 record. The current build includes a session shell and reusable read-only renderers; no role navigation or academic operation forms are wired. Renderer tests use synthetic fixtures, not application data sources or institutional profiles.
+
+From frontend: `npm test` runs 56 Node contract/session/server-rendering tests; `npm run typecheck` checks application and tooling/spec sources; `npm run build` typechecks then builds with Vite's native config loader (the bundled loader hit Windows sandbox spawn/native-binary errors). `npm run test:e2e:list` discovers 3 future browser cases without launching/downloading a browser. No browser execution or certificate bypass is authorized by these commands.
+
+Compiled `dist` is local-only and ignored. The owned HTTPS backend harness can mount its index/JS/CSS under EVAL_UI_ENABLED=1 and preserve same-origin session paths. Build before running `backend/scripts/local.ps1 -Command test -Unit U11` from the repository root to include the actual TLS asset scenario; without dist that single test skips explicitly. The test-managed listeners stop in teardown. `npm run dev` is limited to 127.0.0.1 and supports UI development; its HTTP origin does not satisfy the approved HTTPS authentication contract and is not an authenticated integration command.
+
+Default SessionShell shows the confirmed session/empty-workspace state. AcademicReadView components validate DTOs before rendering; live role menus/resource selection and institutional label binding remain pending. No ID locator entry, client role picker or invented profile names. Browser download/trust, E2E, live role operations, LAN/outage and load acceptance remain future evidence; task 8.2 is not completed.

@@ -1,10 +1,27 @@
 {
-  "name": "eval-academic-contracts",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "typecheck": "tsc --noEmit",
-    "test": "tsc && node --test --test-isolation=none tests/contracts.runner.mjs"
-  },
-  "devDependencies": { "typescript": "7.0.2" }
+    "name":  "eval-academic-contracts",
+    "private":  true,
+    "type":  "module",
+    "scripts":  {
+                    "typecheck":  "tsc --noEmit \u0026\u0026 tsc -p tsconfig.tooling.json",
+                    "test":  "tsc \u0026\u0026 node --test --test-isolation=none tests/contracts.runner.mjs",
+                    "build":  "npm run typecheck \u0026\u0026 vite build --configLoader native",
+                    "dev":  "vite --host 127.0.0.1",
+                    "test:e2e:list":  "playwright test --list"
+                },
+    "devDependencies":  {
+                            "@playwright/test":  "1.64.0",
+                            "@tailwindcss/vite":  "4.3.3",
+                            "@types/node":  "24.19.1",
+                            "@types/react":  "19.3.0",
+                            "@types/react-dom":  "19.3.0",
+                            "@vitejs/plugin-react":  "6.1.2",
+                            "tailwindcss":  "4.3.3",
+                            "typescript":  "7.0.2",
+                            "vite":  "8.3.3"
+                        },
+    "dependencies":  {
+                         "react":  "19.3.0",
+                         "react-dom":  "19.3.0"
+                     }
 }

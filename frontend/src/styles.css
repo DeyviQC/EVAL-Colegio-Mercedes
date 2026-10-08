@@ -1,0 +1,6 @@
+@import "tailwindcss";
+@theme { --color-eval-ink:#162c3f; --color-eval-teal:#075e63; --color-eval-paper:#f3f5f2; }
+body { margin:0; background:var(--color-eval-paper); color:var(--color-eval-ink); font-family:system-ui,sans-serif; }
+button, input { font:inherit; }
+button:disabled { opacity:.6; cursor:wait; }
+:focus-visible { outline:3px solid #bd6718; outline-offset:3px; }
