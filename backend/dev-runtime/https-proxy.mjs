@@ -17,13 +17,13 @@ const server=https.createServer({cert:readFileSync(certPath),key:readFileSync(ke
     const path=new URL(request.url,`https://${expectedHost}`).pathname;
     // Browser auxiliary requests must not bootstrap a competing anonymous session.
     if(path==='/favicon.ico') { response.writeHead(204,{'Cache-Control':'no-store'});response.end();return; }
-    const filename=path==='/'?'index.html':/^\/assets\/[A-Za-z0-9_-]+\.(js|css)$/.test(path)?path.slice(1):null;
+    const filename=path==='/'?'index.html':/^\/assets\/[A-Za-z0-9_-]+\.(js|css|png)$/.test(path)?path.slice(1):null;
     if(filename!==null) {
       const target=resolve(uiRoot,filename);
       if(!existsSync(target)||!realpathSync(target).startsWith(realpathSync(uiRoot)+sep)) {
         response.writeHead(404,{'Content-Type':'application/json'});response.end('{"error":"ui_asset_unavailable"}');return;
       }
-      const mime=filename.endsWith('.js')?'text/javascript':filename.endsWith('.css')?'text/css':'text/html';
+      const mime=filename.endsWith('.png')?'image/png':filename.endsWith('.js')?'text/javascript':filename.endsWith('.css')?'text/css':'text/html';
       response.writeHead(200,{'Content-Type':`${mime}; charset=utf-8`,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',
         'Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"});
       response.end(readFileSync(target));return;

@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {tmpdir} from 'node:os';
 import {chromium} from '../node_modules/playwright/index.mjs';
 const dist=fileURLToPath(new URL('../dist/',import.meta.url));
-const server=createServer(async(req,res)=>{try{const path=resolve(dist,'.'+(new URL(req.url,'http://localhost').pathname==='/'?'/index.html':new URL(req.url,'http://localhost').pathname));if(!path.startsWith(resolve(dist)+ '\\'))throw new Error();const body=await readFile(path);res.setHeader('Content-Type',extname(path)==='.js'?'text/javascript':extname(path)==='.css'?'text/css':'text/html');res.end(body);}catch{res.statusCode=404;res.end();}});
+const server=createServer(async(req,res)=>{try{const path=resolve(dist,'.'+(new URL(req.url,'http://localhost').pathname==='/'?'/index.html':new URL(req.url,'http://localhost').pathname));if(!path.startsWith(resolve(dist)+ '\\'))throw new Error();const body=await readFile(path);res.setHeader('Content-Type',extname(path)==='.png'?'image/png':extname(path)==='.js'?'text/javascript':extname(path)==='.css'?'text/css':'text/html');res.end(body);}catch{res.statusCode=404;res.end();}});
 await new Promise(done=>server.listen(0,'127.0.0.1',done));const origin='http://127.0.0.1:'+server.address().port;
 const evidence=join(tmpdir(),'eval-calendar-react-evidence');await mkdir(evidence,{recursive:true});
 let browser;let checks=0,external=0,writes=0;
