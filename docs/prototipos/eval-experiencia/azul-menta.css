@@ -1,0 +1,38 @@
+/* EVAL reference-inspired visual proposal. Local preview only. */
+.calendar-row label{display:grid;gap:6px;font-size:13px}.calendar-row input,#calendar-source{font:inherit;border:1px solid #9bc1dc;border-radius:10px;padding:12px;min-height:46px;max-width:100%;background:white;color:#173b54}#calendar-source{display:block;width:100%;margin-top:8px}.calendar-row{flex-wrap:wrap}.calendar-row strong{flex:1;min-width:150px}.calendar-row input:focus-visible,#calendar-source:focus-visible{outline:3px solid #885900;outline-offset:3px}
+.week-tools{display:flex;flex-wrap:wrap;align-items:end;gap:16px}.week-tools>div{display:grid;gap:8px;max-width:100%}.week-filter{display:flex;align-items:center;gap:10px;min-height:48px;font-size:14px}.week-filter input{width:20px;height:20px}.week-filter input:focus-visible{outline:3px solid #885900;outline-offset:4px}.week{scroll-margin-top:20px}
+.week{margin:16px 0;border:1px solid #cbdfe9;background:white;border-radius:20px;overflow:hidden}.week summary{cursor:pointer;padding:20px;min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:14px;background:#e7f7f2}.week summary strong{color:#174c50;font-size:18px}.week summary small{margin-top:6px;line-height:1.5}.week summary .tag{margin:0}.week summary::after{content:'+';font-size:24px;color:#174c50}.week[open] summary::after{content:'−'}.week summary:focus-visible{outline:3px solid #885900;outline-offset:-4px}@media(max-width:720px){.week summary{flex-wrap:wrap}.week summary .tag{font-size:11px}}
+:root{--teal:#0868b6;--muted:#486579;--line:#cbdfe9;color:#173b54;background:#edf8fc}
+body{background:radial-gradient(ellipse at top right,#d5f7ed,transparent 60%),#edf8fc}
+.sidebar{background:#fff;border-right:1px solid #cbdfe9}
+.mark{background:linear-gradient(140deg,#087bc9,#117b70);border-radius:18px;box-shadow:4px 4px 0 #d7f5ef}
+.brand strong{color:#0868b6}
+nav button{border-radius:14px;min-height:48px}
+nav button.active{background:#0868b6;color:#fff;box-shadow:0 4px 12px #0868b61c}
+nav button:hover:not(.active){background:#e7f7f2;color:#174c50}
+.avatar{background:#d9f5ed;color:#205953}
+.top{border-bottom:0;padding-bottom:8px}
+.year{color:#32586b;border-color:#cbdfe9}
+.heading{margin-top:26px}
+.hero{position:relative;overflow:hidden;background:linear-gradient(115deg,#0c75c1,#106caa 58%,#117b70);color:white;border-radius:24px;box-shadow:7px 7px 0 #cceee8;padding:30px;margin-bottom:32px}
+.hero .eyebrow,.hero p{color:#fff}
+.hero h2{font-size:24px;max-width:520px}
+.hero-icon{color:white;opacity:1;background:#ffffff20;border:1px solid #ffffff70;border-radius:22px;padding:10px 18px}
+.card{border-radius:20px;border-color:#cbdfe9;box-shadow:0 5px 16px #2357740a}
+.course-band{height:12px;background:#087bc9}
+.course-band.violet{background:#198477}.course-band.blue{background:#359db8}.course-band.sand{background:#aa782f}
+.body{padding:24px}
+.tag{background:#dcf5eb;color:#215e51;border-radius:12px;font-size:12px}
+.future{background:#fff3de;color:#7d5b26}
+.btn{border-radius:13px;min-height:46px;color:#0868b6;border-color:#9bc1dc;background:#f7fcff}
+.card .btn[data-course],.primary{background:#0868b6;color:#fff;border-color:#0868b6}
+.btn:hover{box-shadow:0 3px 10px #0868b620}
+.tabs{background:#e0f2f7;padding:8px;border-radius:18px;width:fit-content;max-width:100%}
+.tabs button{border-radius:12px;min-height:46px}
+.tabs button.active{background:#0868b6;border-color:#0868b6}
+.list,.empty{border-radius:20px}
+.stat{color:#0868b6}
+.preview{background:#e0f2f7;color:#254f65}
+button:focus-visible,a:focus-visible,select:focus-visible{outline:3px solid #885900;outline-offset:4px}
+@media(max-width:720px){.sidebar{border-radius:0 0 22px 22px}.hero{padding:24px;box-shadow:4px 4px 0 #cceee8}.hero h2{font-size:21px}nav{padding-bottom:6px}nav button{flex-shrink:0}.top{flex-wrap:wrap}.body{padding:20px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

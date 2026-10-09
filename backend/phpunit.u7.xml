@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="bootstrap.php" cacheResult="false" failOnEmptyTestSuite="true" failOnWarning="true" failOnRisky="true">
+    <testsuites><testsuite name="U7"><file>tests/Feature/Academic/TeachingAssignmentCommandsTest.php</file></testsuite></testsuites>
+</phpunit>

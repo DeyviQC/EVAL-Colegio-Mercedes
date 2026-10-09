@@ -1,0 +1,30 @@
+# Material Maintenance Verification
+
+Date: 2026-10-08. The human approved the concrete metadata, withdrawal/restoration and historical-visibility rules through Continue. This completed first unit implements those rules; file replacement and private vice-principal observations remain separate.
+
+## Delivered behavior
+
+The original author may edit title/description and withdraw/restore only while the original owned assignment and period are active. A successor may retain approved consultation but cannot overwrite predecessor publications. Original publication, author, assignment, file/hash and publication boundary remain immutable. Edits and state changes append full retained metadata/state revisions under the existing academic write guard and atomically advance a protected pointer. Stale expected revisions, duplicate state transitions and no-change edits are denied without mutations.
+
+Withdrawal removes the material from student lists and Library and denies direct student file access, including historical students. Authorized teachers retain bytes and revision consultation. Restoration restores only original eligibility. Current eligible students see current metadata; historical students see the latest metadata in their authorized enrollment windows, without later edits. Library matches the actor-visible metadata, preventing post-transfer titles/descriptions from leaking through search. Search comparison remains case-insensitive/accent-sensitive and literal. JSON material consultations now explicitly use private/no-store responses.
+
+Migration 000015 adds material_revisions and material_states: immutable revisions, retained foreign keys, original-author/context constraints and protected predecessor/pointer sequencing. Runtime grants are limited to revision inserts and pointer insert/update columns; original material retention triggers and delete/DDL restrictions remain intact. No existing material was backfilled or rewritten. Read-only legacy U11 material schemas remain supported; the new lifecycle requires its applied migration.
+
+The Materials panel provides named edit/withdraw/restore confirmations and original/revision consultation. Teacher presentation flags propagate through all course/Library entry points; the server independently authorizes every read/write. An uncertain response blocks that material's writes until a decoded matching status consultation and explicit review. Earlier reads cannot qualify; writes are not replayed automatically. File replacement is absent.
+
+## Executed evidence
+
+- Frontend: 137 tests passed, including six new state/revision projection, CSRF/expected-revision, stale/malformed acknowledgement and uncertainty/review cases. TypeScript/tooling and final Vite build passed.
+- Actual MySQL: 73 checks passed. Dedicated synthetic records prove unchanged original publication and identical stored bytes, current metadata visibility, role/extra-field/value denials, stale/no-change rejection, withdrawal/list/search/direct-file denial, restoration, retained original/revision history, post-transfer metadata/search privacy, pointer insert/update rollback, two-connection one-winner/stale-loser serialization, 50+2 revision pagination, closed-parent denial, replacement author retention/read-only authority, revoked credentials and protected revision/pointer persistence. The closed-period record is explicitly guarded synthetic setup, not a normal publication into a closed period. Injected pointer-failure triggers were removed in finally before browser checks.
+- Actual Chromium: 22 checks passed across four roles. They cover real publication, teacher edit, student updated metadata and byte-identical original download, student and administrative maintenance denial, stale revision and missing-CSRF rejection, withdrawal/removal/protected URL denial, Library withdrawal/restoration, original revision history, one lost-response edit committed exactly once, failed consultation remaining blocked, successful consultation/manual review recovery and viewport overflow. The final teacher screenshot was visually inspected.
+- Existing U11 regression: 99 tests / 2397 assertions, two optional skips, no failures. Existing Library regression: 43 MySQL checks and 19 browser checks passed. Original Materials four-role navigation/download regression: 14 checks passed. PHP/Node syntax and Git whitespace checks passed.
+
+An initial server assertion compared an internal PDO integer author ID to a string and was corrected to canonical comparison. Browser checks exposed a missing teacher presentation flag and a prefilled textarea label association; both were corrected. Library regression exposed a first-render loading race; initial loading and explicit result-ready waiting were corrected. Two full server fixtures and subsequent named UI/library fixtures were retained; no rollback of confirmed domain records or institutional reset was performed. No historical universal test-first RED is claimed.
+
+Final inspected development snapshot: TLS/restricted runtime, 27 tables / 15 migrations, 197 accounts, 13 periods, 73 assignments, 192 enrollments, 287 materials, ordinal 1392. These include synthetic verification records. Private files/credentials/screenshots/receipts remain ignored.
+
+Supported command: backend/scripts/manage-dev.ps1 -Command verify-material-maintenance. BrowserOnly skips creation of more server fixtures. The finished local commit is its sequential handoff; no remote mutation is included.
+
+## Remaining acceptance
+
+Attachment replacement, physical purge, successor editing, material-change notifications, vice-principal observations and director browse-all authority remain separately scoped. This unit does not certify cancellation of already-open downloads, simultaneous search/transfer snapshot semantics, exhaustive uncertain-commit recovery, large mixed-candidate performance, physical LAN/outage/load, durable storage or institutional backup/restore. Approved student withdrawal applies to newly authorized consultations/downloads; original retained bytes are not deleted.

@@ -1,6 +1,0 @@
-Options -Indexes
-RewriteEngine On
-RewriteRule ^(?:storage|database|tests|tools|prototipo)(?:/|$) - [F,L]
-<FilesMatch "^(?:config.*|store|auth|app|views|router|panel|organization|uploads|roster|group_navigation)\.php$|\.(?:log|md|ps1|sqlite)$">
- Require all denied
-</FilesMatch>

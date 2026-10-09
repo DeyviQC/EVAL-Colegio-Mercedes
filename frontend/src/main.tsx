@@ -1,10 +1,6 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import "./index.css";
-import App from "./App.tsx";
-
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+import { createRoot } from 'react-dom/client';
+import { SessionShell } from './features/academic-foundation/SessionShell.js';
+import './styles.css';
+const root=document.getElementById('root');
+if(!root) throw new Error('Missing EVAL root');
+createRoot(root).render(<SessionShell />);

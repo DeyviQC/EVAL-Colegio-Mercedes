@@ -1,0 +1,7 @@
+<?php
+declare(strict_types=1);require __DIR__.'/config.php';if(!evalDevBinding(getenv())||getenv('EVAL_DB_ROLE')!=='migration'||!in_array($argv[1]??null,['prepare','remove'],true))exit(2);require dirname(__DIR__).'/bootstrap.php';$db=Illuminate\Database\Capsule\Manager::connection();foreach(['eval_file_revision_probe','eval_file_insert_probe','eval_file_pointer_probe'] as $name)$db->unprepared('DROP TRIGGER IF EXISTS '.$name);
+if($argv[1]==='prepare'){
+ $db->unprepared("CREATE TRIGGER eval_file_revision_probe BEFORE INSERT ON material_file_versions FOR EACH ROW BEGIN IF NEW.filename='revision rollback probe.pdf' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Replacement revision rollback probe'; END IF; END");
+ $db->unprepared("CREATE TRIGGER eval_file_insert_probe AFTER INSERT ON material_file_versions FOR EACH ROW BEGIN IF NEW.filename='file rollback probe.pdf' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Replacement file rollback probe'; END IF; END");
+ $db->unprepared("CREATE TRIGGER eval_file_pointer_probe BEFORE INSERT ON material_states FOR EACH ROW BEGIN DECLARE filename_value VARCHAR(255); SELECT filename INTO filename_value FROM material_file_versions WHERE revision_id=NEW.current_revision_id; IF filename_value='pointer rollback probe.pdf' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Replacement pointer rollback probe'; END IF; END");
+}echo 'File probes '.($argv[1]==='prepare'?'prepared':'removed').PHP_EOL;

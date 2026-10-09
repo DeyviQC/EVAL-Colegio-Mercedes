@@ -1,4 +1,3 @@
 @echo off
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\start-laravel.ps1" -OpenBrowser
+powershell.exe -NoProfile -File "%~dp0EVAL-local.ps1" -Role director_admin
 if errorlevel 1 pause
-

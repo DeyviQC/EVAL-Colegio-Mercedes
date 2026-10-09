@@ -1,0 +1,11 @@
+# EVAL Accepted Prototype Visual Integration
+
+The human clarified that the accepted prototype's colors, shapes and weekly navigation must be visible in the live application. This correction applies the already approved visual direction to actual React screens; it does not require another prototype approval or school-calendar evidence to implement the presentation.
+
+Delivered: blue/mint gradients for the brand, welcome and login; rounded panels and course cards with colored header bands; mint depth/shadows; clear active blue navigation and course tabs; mint weekly workspace and resource type badges. Teacher/student navigation exposes Calendario y semanas, and ordinary course entry opens Semanas by default. Material/library entry points remain type-specific. Existing credentials, server authorization and publication/delivery commands remain unchanged.
+
+When the course has no published calendar, Ver calendario de referencia 2026 shows the 36 dated national-reference teaching weeks in four blocks. This read-only preview is labeled as a reference for Direction review; it never creates a calendar, invents current revision/week IDs, associates content or confirms institutional PAT approval. Actual resource organization continues to use the published course calendar.
+
+Validation: 170 existing frontend tests passed; type checking and production build passed. The synthetic built React browser verifier covers the new menu entry and automatic weekly opening, existing organization/recovery paths, content filtering, access-denial clearing and responsive widths 1024/768/390 with zero external requests. Reference preview coverage checks 36 visible week rows and absence of a live week selector when the published calendar is missing. Desktop screenshot visually inspected. These checks use synthetic authenticated data to verify the actual compiled frontend; they are not claims of physical tablet or official calendar acceptance.
+
+The existing local server serves frontend/dist, which was rebuilt with these changes. An already open browser must reload to receive the new asset bundle. No migration, calendar publication, account reset, commit or remote operation was performed for this visual correction.

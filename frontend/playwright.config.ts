@@ -1,14 +1,7 @@
-import { defineConfig } from "@playwright/test";
-
-export default defineConfig({
-  testDir: "./tests/e2e",
-  workers: 1,
-  expect: { timeout: 15000 },
-  use: {
-    baseURL: process.env.EVAL_URL ?? "http://127.0.0.1:8081",
-    channel: process.env.EVAL_BROWSER ?? "chrome",
-    headless: true,
-    screenshot: "only-on-failure",
-    trace: "retain-on-failure",
-  },
-});
+import { defineConfig } from '@playwright/test';
+const pin=process.env.EVAL_TLS_SPKI;
+if(pin!==undefined&&!/^[A-Za-z0-9+/]{43}=$/.test(pin))throw new Error('Invalid disposable SPKI pin');
+// The owned harness supplies a per-run key exception, never global CA trust.
+export default defineConfig({testDir:'./tests/e2e',fullyParallel:false,workers:1,retries:0,
+  use:{channel:'chromium',ignoreHTTPSErrors:false,launchOptions:{args:pin?[`--ignore-certificate-errors-spki-list=${pin}`]:[]}},
+  outputDir:'test-results',reporter:'list'});

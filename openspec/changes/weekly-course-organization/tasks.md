@@ -1,0 +1,31 @@
+# Tasks
+
+- [x] Record the requested weekly discovery capability and accepted blue/mint direction.
+- [x] Prepare a separate synthetic weekly navigation preview.
+- [x] Add direct week navigation and optional content-only filtering to the independent preview. Verification: 73 browser checks passed, zero HTTP(S) requests, JavaScript syntax and diff whitespace checks passed. Refinements remain pending human acceptance.
+- [x] Verify the preview and record results: 37 browser checks passed, zero HTTP(S) requests; weekly views checked at 1024/768/390 pixels; mobile screenshot visually inspected; JavaScript syntax and diff whitespace checks passed. Full accessibility and physical device acceptance remain open.
+- [x] Obtain acceptance of the weekly prototype: human confirmation "si me gusta", 2026-10-08, following the weekly preview report.
+- [x] Resolve configurable week/calendar/editing semantics through the approved architecture; actual institutional dates remain pending PAT evidence.
+- [x] Record human approval of the integration-review requirements as the architecture basis: "si cintinua", 2026-10-08. This does not approve the subsequently proposed architecture or new application writes.
+- [x] Prepare architecture.md against observed route composition, period commands and frontend contracts.
+- [x] Research official national 2026 calendar guidance and record implications in docs/school-calendar-research-2026.md.
+- [ ] Confirm the school's approved PAT calendar and applicable DRE/UGEL adjustments before choosing calendar semantics.
+- [x] Identify the beneficiary in Huamanga, Ayacucho and verify UGEL Huamanga against MINEDU Identicole; approved institutional calendar remains unavailable in the reviewed official sources.
+- [x] Extend the independent preview with four national-reference teaching blocks and 36 dated weeks, neutral Block labels, Unassigned resources and empty states. Verification: 61 browser checks passed, zero HTTP(S) requests; syntax and whitespace checks passed. This extension remains pending human acceptance and school-calendar confirmation.
+- [x] Review and approve requirements and implementation architecture; approval recorded below.
+- [x] Approve requirements and architecture: human confirmation "aprobado todo continua", 2026-10-08. Preserve the separately outstanding management prototype gate and institutional calendar evidence.
+- [x] Prepare and verify the calendar-management preview: 80 browser checks, zero HTTP(S) requests; syntax and whitespace checks passed.
+- [x] Obtain acceptance of the newly created calendar-management preview: human confirmation "si aprobadocontinua", 2026-10-08.
+- [x] Implement calendar plan validation test-first; see docs/weekly-calendar-validation-verification.md.
+- [x] Implement and verify calendar persistence, retained publication revisions, authenticated commands and real management UI.
+- [x] Implement and verify calendar persistence, retained publication revisions and management HTTP controller in isolated MySQL tests; see docs/weekly-calendar-persistence-verification.md. Runtime DML grants/session HTTP journeys remain unverified.
+- [x] Integrate and verify real management frontend, reviewed runtime migration/grants and uncertain-write consultation UX.
+- [x] Implement real React management frontend and uncertain-write consultation/review UX; 160 frontend tests, build and 20 synthetic browser checks passed. See docs/weekly-calendar-frontend-verification.md.
+- [x] Apply reviewed local runtime schema and least-privilege permissions, then verify a real session/MySQL browser journey. Human explicitly authorized local non-U1 maintenance with "si autorizo continua"; migration 000018 and calendar-only DML grants applied, five real-session checks passed on synthetic planned period 17. See docs/weekly-calendar-runtime-readiness.md.
+- [x] Implement and verify course material/activity week associations and authorized student weekly discovery. See docs/weekly-course-discovery-verification.md for delivered scope and operational limits.
+- [x] Implement and verify the dedicated association backend: retained typed histories, current-calendar/version preconditions and original teacher authority. Ten focused tests (190 assertions) and full U11 regression (117 tests, 2703 assertions, two existing skips) passed. See docs/weekly-resource-association-verification.md; frontend and runtime integration remain pending.
+- [x] Implement association frontend, uncertain-write consultation/review and shared course Weeks view sequentially after backend verification. Frontend 170 tests/build, 15 synthetic browser checks and ten real-session checks passed; migration 000019 and minimum local runtime grants applied. No contributor handoff or commit occurred.
+- [ ] Verify institutionally approved calendar dates and physical LAN/tablet acceptance before institutional operation. Load testing and production deployment remain outside this local verification.
+- [x] Record human acceptance of the delivered weekly functionality and operation review: "apruebo todo continua". This accepts the reviewed local behavior, without asserting unavailable PAT dates, physical-device results or deployment approval.
+- [x] Verify bounded local read load: 24 requests, two sessions, up to six concurrent requests; no errors or changed projections and matching academic snapshots. See docs/weekly-local-read-load-verification.md. School-wide capacity and physical-device acceptance remain unverified.
+- [x] Configure the human-approved national reference in the named local demonstration period without replacing any current calendar; actual student course 1 exposes 36 weeks and opens Week 1 without the not-configured warning. Source explicitly identifies demonstration/PAT-pending status; see docs/local-demonstration-calendar-configuration.md.

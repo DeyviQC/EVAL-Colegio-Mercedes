@@ -1,0 +1,6 @@
+<?php
+declare(strict_types=1);
+require __DIR__.'/config.php';if(!evalDevBinding(getenv())||getenv('EVAL_DB_ROLE')!=='migration'||!in_array($argv[1]??null,['prepare','remove'],true))exit(2);require dirname(__DIR__).'/bootstrap.php';$db=Illuminate\Database\Capsule\Manager::connection();
+$db->unprepared('DROP TRIGGER IF EXISTS eval_notification_rollback_probe');
+if($argv[1]==='prepare')$db->unprepared("CREATE TRIGGER eval_notification_rollback_probe BEFORE INSERT ON academic_notifications FOR EACH ROW BEGIN DECLARE probe_title VARCHAR(200); IF NEW.activity_id IS NOT NULL THEN SELECT title INTO probe_title FROM activity_contents WHERE activity_id=NEW.activity_id; ELSE SELECT c.title INTO probe_title FROM submission_references s JOIN activity_contents c ON c.activity_id=s.activity_id WHERE s.id=NEW.submission_id; END IF; IF probe_title='EVAL atomic notification rollback verification' OR (probe_title='EVAL atomic delivery notification rollback verification' AND NEW.event IN ('delivery_accepted','delivery_updated')) OR (probe_title='EVAL atomic grading notification rollback verification' AND NEW.event IN ('delivery_assessed','assessment_corrected')) THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Isolated notification failure probe'; END IF; END");
+echo 'Scoped notification failure fixture '.($argv[1]==='prepare'?'prepared':'removed').PHP_EOL;

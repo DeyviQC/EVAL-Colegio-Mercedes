@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="bootstrap.php" cacheResult="false" failOnEmptyTestSuite="true" failOnWarning="true" failOnRisky="true">
+    <testsuites><testsuite name="School calendar validation"><file>tests/Unit/Academic/SchoolCalendarPlanTest.php</file></testsuite></testsuites>
+</phpunit>

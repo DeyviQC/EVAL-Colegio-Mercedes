@@ -1,32 +1,5 @@
 <!doctype html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/escudo.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>EVAL · Nuestra Señora de las Mercedes</title>
-  </head>
-  <body>
-    <div id="root">
-      <main style="max-width:480px;margin:60px auto;padding:30px;font-family:Segoe UI,sans-serif;color:#182c83">
-        <h1>EVAL</h1>
-        <p id="boot-status" role="status">Cargando tu aula…</p>
-        <button id="boot-retry" type="button" hidden onclick="location.reload()">Volver a cargar</button>
-      </main>
-    </div>
-    <script>
-      window.addEventListener('error', function (event) {
-        if (event.target && event.target.tagName === 'SCRIPT') {
-          var status = document.getElementById('boot-status');
-          var retry = document.getElementById('boot-retry');
-          if (status) status.textContent = 'No se pudo cargar el aula. Vuelve a cargar la página.';
-          if (retry) retry.hidden = false;
-        }
-      }, true);
-    </script>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>EVAL</title></head>
+<body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body>
 </html>
-
-
-

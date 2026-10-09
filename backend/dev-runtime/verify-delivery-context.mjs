@@ -1,0 +1,30 @@
+import { chromium } from '../../frontend/node_modules/playwright-core/index.mjs';
+import { readFileSync,writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import assert from 'node:assert/strict';
+import { certificateOptions } from './browser-options.mjs';
+const root=process.env.EVAL_DEV_ROOT,chunks=[];
+for await(const chunk of process.stdin)chunks.push(chunk);
+const passwords=JSON.parse(Buffer.concat(chunks).toString());
+const browser=await chromium.launch({...certificateOptions(readFileSync(resolve(root,'cert.pem'))),headless:true,executablePath:chromium.executablePath()});
+const contexts=[];let checks=0;
+async function login(username,password){const context=await browser.newContext({viewport:{width:768,height:1024}});contexts.push(context);const page=await context.newPage();await page.goto('https://127.0.0.1:8443');await page.getByLabel('Usuario',{exact:true}).fill(username);await page.getByLabel('Contraseña',{exact:true}).fill(password);await page.getByRole('button',{name:'Ingresar',exact:true}).click();await page.getByRole('button',{name:'Cerrar sesión',exact:true}).waitFor();return page;}
+async function select(page,name){await page.getByRole('button',{name,exact:true}).click();await page.getByLabel('Curso y aula',{exact:true}).selectOption({label:'Matemática · 2.º B · EVAL desarrollo 2026'});}
+async function findCard(page,title){const card=page.getByRole('article',{name:title,exact:true});for(let i=0;i<30;i++){await page.waitForFunction(()=>{const b=[...document.querySelectorAll('button')].find(b=>b.textContent==='Consultar actividades');return b&&!b.disabled;});if(await card.count())return card;const more=page.getByRole('button',{name:'Más actividades',exact:true});if(!await more.count())break;await more.click();await page.waitForFunction(()=>!document.querySelector('section[aria-label][aria-busy="true"]'));}throw Error('Published assessment activity not found');}
+async function api(page,path,body){return page.evaluate(async({path,body})=>{const session=await(await fetch('/auth/session')).json();const r=await fetch(path,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json','X-CSRF-TOKEN':session.csrf_token}:{},...(body?{body:JSON.stringify(body)}:{})});return {status:r.status,wire:await r.json()};},{path,body});}
+try {
+ const student=await login('estudiante',passwords.student);const teacher=await login('docente',passwords.teacher);const vice=await login('subdirector',passwords.vice_principal);
+ const courses=await api(student,'/education/courses');const course=courses.wire.data.items.find(c=>c.label==='Matem\u00e1tica \u00b7 2.\u00ba B \u00b7 EVAL desarrollo 2026');assert.ok(course);let activity,delivery,after=null;
+ do{const page=await api(student,'/education/courses/'+course.id+'/activities'+(after?'?after='+after:''));for(const row of page.wire.data.items){const deliveries=await api(student,'/education/activities/'+row.id+'/deliveries');if(deliveries.status===200&&deliveries.wire.data.items.length){activity=row;delivery=deliveries.wire.data.items[0];break;}}after=page.wire.data.next_after;}while(!activity&&after);assert.ok(delivery);checks++;
+ const history=await api(student,'/academic/submissions/'+delivery.id);assert.equal(history.status,200);assert.equal(history.wire.data.submission.id,delivery.id);assert.equal(history.wire.data.activityReference.id,activity.id);assert.equal(history.wire.data.originalTeachingAssignment.id,activity.assignment_id);checks++;
+ for(const page of [student,teacher]){await select(page,'Entregas');const card=await findCard(page,activity.title);const context=card.getByLabel('Contexto original de la entrega',{exact:true}).first();await context.getByRole('button',{name:'Ver contexto original',exact:true}).click();await context.getByRole('heading',{name:'Historial de entrega',exact:true}).waitFor();assert.ok((await context.textContent()).includes(history.wire.data.originalTeachingAssignment.teacher.displayName));assert.ok((await context.textContent()).includes(history.wire.data.acceptedUnderEnrollment.grade.displayName));checks++;}
+ const teacherHistory=await api(teacher,'/academic/submissions/'+delivery.id);assert.deepEqual(teacherHistory.wire,history.wire);checks++;
+ assert.equal((await api(vice,'/academic/submissions/'+delivery.id)).status,404);checks++;
+ assert.equal((await api(student,'/academic/submissions/18446744073709551615')).status,404);checks++;
+ const wire=JSON.stringify(history.wire);for(const key of ['answer','feedback','filename','password','storage_key'])assert.equal(wire.includes('"'+key+'"'),false);checks++;
+ const card=await findCard(student,activity.title),context=card.getByLabel('Contexto original de la entrega',{exact:true}).first(),path='**/academic/submissions/'+delivery.id;
+ const failure=route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'database_unavailable',correlation_id:'context-probe',automatic_retry:false})});await student.route(path,failure);await context.getByRole('button',{name:'Consultar contexto original',exact:true}).click();await context.getByRole('alert').waitFor();assert.equal(await context.getByRole('heading',{name:'Historial de entrega'}).count(),0);checks++;
+ await student.unroute(path,failure);await context.getByRole('button',{name:'Consultar contexto original',exact:true}).click();await context.getByRole('heading',{name:'Historial de entrega',exact:true}).waitFor();assert.equal(await context.getByRole('alert').count(),0);checks++;
+ assert.equal(await student.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);checks++;
+ await context.screenshot({path:resolve(root,'entrega-contexto-original.png')});writeFileSync(resolve(root,'delivery-context-verification.json'),JSON.stringify({checks,originalContext:true,privateProjection:true,recovery:true,verifiedAt:new Date().toISOString()},null,2));process.stdout.write(JSON.stringify({checks,originalContext:true,privateProjection:true,recovery:true})+'\n');
+}finally{for(const context of contexts)await context.close();await browser.close();}

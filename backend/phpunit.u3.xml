@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="bootstrap.php" cacheResult="false" failOnEmptyTestSuite="true" failOnWarning="true" failOnRisky="true">
+    <testsuites><testsuite name="U3">
+        <file>tests/Unit/Academic/AcademicLockSetTest.php</file>
+        <file>tests/Feature/Academic/AcademicWriteTransactionTest.php</file>
+        <file>tests/Feature/Academic/LifecycleLedgerTest.php</file>
+    </testsuite></testsuites>
+</phpunit>

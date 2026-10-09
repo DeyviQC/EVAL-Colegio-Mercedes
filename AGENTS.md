@@ -28,6 +28,12 @@
 3. Keep `openspec/` artifacts consistent with approved decisions and preserve archived history.
 4. Do not create application scaffolding, source code, schemas, or CI workflows before the corresponding specifications and prototype are approved.
 
+### Human-approved U1-only exception
+
+The human explicitly authorizes strict test-first U1 prerequisites, minimal isolated local setup, and academic-foundation tasks 2.1–2.3 before prototype acceptance and integral architecture approval. This narrow exception does not complete gate 1.1 or any other planning gate. Setup is an independently authorized prerequisite, not domain implementation or SDD apply.
+
+All default delivery restrictions remain in force outside this exception. It does not authorize U2 or later units, unresolved decisions, user management, U3 writers, locking/retry protocols, or the lifecycle ledger. The setup worker must not create temporal domain objects/tests, retained identity schema, or guard migrations. No chain strategy, scope expansion, or size exception is selected on the human's behalf. No commits, pushes, PRs, global installations, administrator operations, production access, or remote execution are authorized.
+
 ## Artifact and quality rules
 
 - Write technical artifacts in English.
@@ -35,3 +41,7 @@
 - Run only repository-supported checks and report unavailable checks honestly.
 - Keep changes focused, reviewable, and free of secrets.
 - Do not perform remote operations without explicit authorization for the destination, operation, and credentials or session.
+
+### Sequential team handoff (human instruction, 2026-10-07)
+
+Finish and verify one bounded unit, then commit it before the next contributor starts from that exact predecessor commit. Do not develop application units concurrently. Record verification and remaining gates in each handoff. The human authorized local reconciliation; this supersedes the earlier no-commit restriction for finished reconciliation handoffs only. It does not certify prototype acceptance, resolve pending product decisions, authorize remote operations, or broaden the U1 exception into U2/U3 execution.

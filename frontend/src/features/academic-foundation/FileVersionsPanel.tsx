@@ -1,0 +1,10 @@
+import {useEffect,useRef,useState} from 'react';
+import {AcademicApiError} from './api.js';
+import {RecordedTime} from './RecordedTime.js';
+import {versionFileUrl,type FileVersionPage} from './material-maintenance.js';
+export function FileVersionsPanel({id,read,supervision=false,onExpired}:{id:string;read:(id:string,after:string|null)=>Promise<FileVersionPage>;supervision?:boolean;onExpired:()=>void}){
+ const [data,setData]=useState<FileVersionPage|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');const generation=useRef(0);useEffect(()=>()=>{generation.current++;},[id,read]);
+ async function load(after:string|null=null){const current=++generation.current;setBusy(true);setError('');try{const result=await read(id,after);if(result.id!==id)throw Error('Wrong material');if(current===generation.current)setData(result);}catch(e){if(current===generation.current){setData(null);if(e instanceof AcademicApiError&&[401,419].includes(e.status??0))onExpired();else setError('No se pudieron consultar las versiones del archivo.');}}finally{if(current===generation.current)setBusy(false);}}
+ const rows=data?[data.original,...data.items]:[];
+ return <section aria-label="Versiones retenidas del archivo" aria-busy={busy}><button className="my-2 rounded border px-3 py-2" disabled={busy} onClick={()=>void load()}>Consultar versiones del archivo</button>{error&&<p role="alert">{error}</p>}{rows.map(row=><div key={row.revision_id??'original'} className="my-2 rounded border p-3"><p>{row.revision_id?'Versión de archivo · Revisión '+row.revision_id:'Archivo original'}: {row.filename}</p><p>{row.mime} · {row.bytes} bytes</p><div className="my-1"><RecordedTime value={row.recorded_at}/></div><a className="mr-3" href={versionFileUrl(id,row.revision_id,supervision)+'&disposition=inline'} target="_blank" rel="noopener noreferrer">Abrir esta versión</a><a href={versionFileUrl(id,row.revision_id,supervision)} download>Descargar esta versión</a></div>)}{data?.next_after&&<button disabled={busy} onClick={()=>void load(data.next_after)}>Más versiones del archivo</button>}</section>;
+}
